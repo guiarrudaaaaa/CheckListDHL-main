@@ -1,0 +1,81 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHL - Relatório de Operações</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <header class="navbar-fullwidth sticky top-0 z-50">
+        <div class="navbar-fullwidth-container max-w-7xl mx-auto px-6 py-4">
+            <div class="navbar-left">
+                <div class="navbar-page-title">Checklist Final</div>
+                <div class="navbar-page-subtitle">DHL / Suzano CD CWB</div>
+            </div>
+            <div class="navbar-center logos-center">
+                <img src="./images/DHL_Logo_BF_rgb.png" alt="DHL" class="brand-logo">
+                <img src="./images/suzano-logo.png" alt="Suzano" class="brand-logo-suzano">
+            </div>
+            <div class="navbar-right">
+                <div class="navbar-chip navbar-chip-synced">
+                    <span class="sync-dot"></span>
+                    <span>Sincronizado</span>
+                </div>
+                <div class="navbar-clock" id="liveTime">00:00:00</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="metric-card red">
+                <p class="metric-label">📋 Total de Registros</p>
+                <p class="metric-value" id="totalRegistros">0</p>
+            </div>
+            <div class="metric-card blue">
+                <p class="metric-label">📥 Operações Inbound</p>
+                <p class="metric-value" id="inboundCount">0</p>
+            </div>
+            <div class="metric-card green">
+                <p class="metric-label">📤 Operações Outbound</p>
+                <p class="metric-value" id="outboundCount">0</p>
+            </div>
+            <div class="metric-card purple">
+                <p class="metric-label">📦 Total Pallets</p>
+                <p class="metric-value" id="totalPbrCount">0</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 mb-8 shadow-sm">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                <input type="text" id="searchInput" class="search-bar" placeholder="Buscar placa, motorista, DT...">
+                <div class="flex gap-3">
+                    <button id="newEntryBtn" class="btn-primary">＋ Nova Entrada</button>
+                    <button id="exportBtn" class="btn-secondary">📄 Exportar Excel</button>
+                </div>
+            </div>
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="todos">
+                    <span>Todos</span> <span id="todosNumber" class="ml-2 font-bold">(0)</span>
+                </button>
+                <button class="filter-tab" data-filter="inbound">
+                    <span>📥 Inbound</span> <span id="inboundNumber" class="ml-2 font-bold">(0)</span>
+                </button>
+                <button class="filter-tab" data-filter="outbound">
+                    <span>📤 Outbound</span> <span id="outboundNumber" class="ml-2 font-bold">(0)</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div id="checklistsList"></div>
+        </div>
+    </main>
+
+    <script type="module" src="firebase-init.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

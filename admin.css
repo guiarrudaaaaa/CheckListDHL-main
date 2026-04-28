@@ -1,0 +1,1258 @@
+/* ===== CONFIGURAÇÕES GLOBAIS E TOKENS DE DESIGN ===== */
+/* Define as cores e fontes da marca DHL para consistência visual */
+:root {
+    --dhl-yellow: #FFCC00; /* Amarelo assinatura da DHL */
+    --dhl-red: #D40511; /* Vermelho assinatura da DHL */
+    --dhl-black: #000000; /* Cor principal do texto */
+    --dhl-white: #FFFFFF; /* Cor de fundo principal */
+    --dhl-dark-green: #006443; /* Verde escuro para sucesso */
+    --border-muted: rgba(0, 0, 0, 0.12); /* Tom sutil para bordas */
+    --font-stack: 'DHL Delivery', 'Frutiger', 'Helvetica', 'Arial', sans-serif; /* Pilha de fontes com fallbacks */
+}
+
+/* ===== DECLARAÇÕES DE FONTE PERSONALIZADA ===== */
+/* Fontes proprietárias da DHL - descomente quando os arquivos estiverem disponíveis */
+/*
+@font-face {
+    font-family: 'DHL Delivery';
+    font-style: normal;
+    font-weight: 400; /* Regular para textos de apoio */
+    src: url('fonts/DHL-Delivery-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'DHL Delivery';
+    font-style: normal;
+    font-weight: 700; /* Bold para títulos */
+    src: url('fonts/DHL-Delivery-Bold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'DHL Delivery';
+    font-style: normal;
+    font-weight: 900; /* Black para botões importantes */
+    src: url('fonts/DHL-Delivery-Black.woff2') format('woff2');
+}
+*/
+
+/* ===== RESET E ESTILOS BASE ===== */
+/* Aplica a fonte DHL Delivery em todos os elementos */
+* {
+    margin: 0; /* Remove margens padrão */
+    padding: 0; /* Remove padding padrão */
+    box-sizing: border-box; /* Inclui padding e border na largura */
+}
+
+html,
+body,
+input,
+button,
+select,
+textarea,
+th,
+td {
+    font-family: var(--font-stack); /* Usa a pilha de fontes DHL */
+}
+
+body {
+    background: var(--dhl-white); /* Fundo branco da página */
+    color: var(--dhl-black); /* Cor padrão do texto */
+    min-height: 100vh; /* Altura mínima da viewport */
+    overflow-x: hidden; /* Previne rolagem horizontal */
+    line-height: 1.5; /* Melhora a legibilidade */
+}
+
+/* ===== LOGOTIPOS ===== */
+/* Estilos para os logotipos da DHL e Suzano */
+.brand-logo {
+    width: 140px; /* Largura do logo DHL */
+    height: auto; /* Altura proporcional */
+    display: block; /* Exibe como bloco */
+}
+
+.brand-logo-suzano {
+    width: 90px; /* Largura do logo Suzano */
+    height: auto; /* Altura proporcional */
+    margin-left: 1rem; /* Margem esquerda */
+}
+
+/* ===== BARRA DE NAVEGAÇÃO ===== */
+/* Estilos para a navbar fixa no topo */
+.navbar {
+    background: var(--dhl-yellow); /* Fundo amarelo DHL */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Sombra */
+}
+
+.navbar-strip {
+    display: flex; /* Layout flexível */
+    align-items: center; /* Alinha itens verticalmente */
+    justify-content: space-between; /* Espaça itens */
+    padding: 0.65rem 1.5rem 0.55rem; /* Padding interno */
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08); /* Borda inferior */
+}
+
+.navbar-links {
+    display: flex; /* Layout flexível */
+    gap: 1.5rem; /* Espaçamento */
+    flex-wrap: wrap; /* Quebra linha se necessário */
+}
+
+.navbar-link,
+.navbar-locale a,
+.navbar-locale span {
+    color: var(--dhl-black); /* Cor preta */
+    font-weight: 600; /* Peso semi-bold */
+    font-size: 0.85rem; /* Tamanho pequeno */
+    text-decoration: none; /* Remove decoração */
+}
+
+.navbar-link:hover,
+.navbar-locale a:hover {
+    text-decoration: underline; /* Sublinhado no hover */
+}
+
+.navbar-separator {
+    margin: 0 0.5rem; /* Margem lateral */
+    color: var(--dhl-black); /* Cor preta */
+}
+
+.active-lang {
+    text-decoration: underline; /* Sublinhado para idioma ativo */
+}
+
+.navbar-main {
+    display: flex; /* Layout flexível */
+    align-items: center; /* Alinha itens */
+    justify-content: space-between; /* Espaça itens */
+    max-width: 1200px; /* Largura máxima */
+    margin: 0 auto; /* Centraliza */
+    padding: 1rem 1.5rem 1.25rem; /* Padding */
+}
+
+.navbar-left {
+    display: flex; /* Layout flexível */
+    align-items: center; /* Alinha itens */
+    min-width: 220px; /* Largura mínima */
+}
+
+.navbar-brand {
+    display: flex; /* Layout flexível */
+    justify-content: center; /* Centraliza */
+    flex: 1; /* Ocupa espaço */
+}
+
+.navbar-right {
+    display: flex; /* Layout flexível */
+    align-items: center; /* Alinha itens */
+    gap: 1rem; /* Espaçamento */
+    min-width: 220px; /* Largura mínima */
+    justify-content: flex-end; /* Alinha à direita */
+}
+
+.navbar-clock {
+    background: rgba(0, 0, 0, 0.08); /* Fundo sutil */
+    color: var(--dhl-black); /* Cor preta */
+    padding: 0.55rem 1rem; /* Padding */
+    border-radius: 9999px; /* Bordas arredondadas */
+    font-weight: 600; /* Peso semi-bold */
+    font-variant-numeric: tabular-nums; /* Números tabulares */
+}
+
+.navbar-avatar {
+    width: 3rem; /* Largura */
+    height: 3rem; /* Altura */
+    background: var(--dhl-white); /* Fundo branco */
+    border: 2px solid var(--dhl-black); /* Borda preta */
+    border-radius: 9999px; /* Circular */
+    display: inline-flex; /* Layout flex */
+    align-items: center; /* Centraliza verticalmente */
+    justify-content: center; /* Centraliza horizontalmente */
+    font-weight: 700; /* Peso bold */
+    color: var(--dhl-yellow); /* Cor amarela */
+}
+
+.navbar-button {
+    background: var(--dhl-black); /* Fundo preto */
+    color: var(--dhl-white); /* Texto branco */
+    border: none; /* Remove borda */
+    border-radius: 9999px; /* Bordas arredondadas */
+    padding: 0.65rem 1rem; /* Padding */
+    cursor: pointer; /* Cursor pointer */
+    font-weight: 600; /* Peso semi-bold */
+    transition: background 0.2s ease; /* Transição */
+}
+
+.navbar-button:hover {
+    background: #222; /* Fundo mais escuro no hover */
+}
+
+.navbar-fullwidth {
+    position: sticky; /* Fixa no topo */
+    top: 0; /* Distância do topo */
+    left: 0; /* Alinhamento esquerdo */
+    width: 100%; /* Largura total */
+    background: var(--dhl-yellow); /* Fundo amarelo */
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12); /* Sombra */
+}
+
+.navbar-fullwidth-container {
+    display: flex; /* Layout flexível */
+    align-items: center; /* Alinha itens */
+    justify-content: space-between; /* Espaça itens */
+    gap: 1rem; /* Espaçamento */
+    width: 100%; /* Largura total */
+}
+
+.navbar-left,
+.navbar-right {
+    display: flex; /* Layout flexível */
+    align-items: center; /* Alinha itens */
+    gap: 1rem; /* Espaçamento */
+}
+
+.navbar-center {
+    display: flex; /* Layout flexível */
+    justify-content: center; /* Centraliza */
+    flex: 1; /* Ocupa espaço */
+}
+
+.navbar-page-title {
+    font-size: 1.1rem; /* Tamanho da fonte */
+    font-weight: 800; /* Peso black para títulos */
+    color: var(--dhl-black); /* Cor preta */
+}
+
+.navbar-page-subtitle {
+    font-size: 0.75rem; /* Tamanho menor */
+    color: var(--dhl-black); /* Cor preta */
+    text-transform: uppercase; /* Maiúsculo */
+    letter-spacing: 0.14em; /* Espaçamento */
+}
+
+.navbar-chip {
+    display: inline-flex; /* Layout flex */
+    align-items: center; /* Alinha itens */
+    gap: 0.6rem; /* Espaçamento */
+    background: var(--dhl-white); /* Fundo branco */
+    color: var(--dhl-black); /* Texto preto */
+    padding: 0.65rem 1rem; /* Padding */
+    border-radius: 9999px; /* Bordas arredondadas */
+    font-weight: 600; /* Peso semi-bold */
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08); /* Sombra */
+}
+
+.sync-dot {
+    width: 0.75rem; /* Largura */
+    height: 0.75rem; /* Altura */
+    background: var(--dhl-dark-green); /* Fundo verde */
+    border-radius: 9999px; /* Circular */
+}
+
+.brand-logo-suzano {
+    width: 90px; /* Largura */
+    height: auto; /* Altura proporcional */
+    margin-left: 1rem; /* Margem esquerda */
+}
+
+.logos-center {
+    display: flex; /* Layout flexível */
+    align-items: center; /* Alinha itens */
+    gap: 1rem; /* Espaçamento */
+}
+
+.navbar-avatar {
+    width: 3rem; /* Largura */
+    height: 3rem; /* Altura */
+    display: inline-flex; /* Layout flex */
+    align-items: center; /* Centraliza */
+    justify-content: center; /* Centraliza */
+    border-radius: 9999px; /* Circular */
+    background: var(--dhl-white); /* Fundo branco */
+    color: var(--dhl-yellow); /* Texto amarelo */
+    border: 2px solid var(--dhl-black); /* Borda preta */
+    font-weight: 800; /* Peso black */
+}
+
+.navbar-clock {
+    background: rgba(0, 0, 0, 0.08); /* Fundo sutil */
+    color: var(--dhl-black); /* Texto preto */
+    padding: 0.65rem 1rem; /* Padding */
+    border-radius: 9999px; /* Bordas arredondadas */
+    font-weight: 600; /* Peso semi-bold */
+    font-variant-numeric: tabular-nums; /* Números tabulares */
+}
+
+.navbar-button {
+    background: var(--dhl-black); /* Fundo preto */
+    color: var(--dhl-white); /* Texto branco */
+    border: none; /* Remove borda */
+    border-radius: 9999px; /* Bordas arredondadas */
+    padding: 0.75rem 1.2rem; /* Padding */
+    cursor: pointer; /* Cursor pointer */
+    font-weight: 600; /* Peso semi-bold */
+    transition: background 0.2s ease; /* Transição */
+}
+
+.navbar-button:hover {
+    background: #222; /* Fundo escuro no hover */
+}
+
+/* ===== CABEÇALHO DHL ===== */
+/* Estilos para o cabeçalho da DHL */
+.header-dhl {
+    background: var(--dhl-yellow); /* Fundo amarelo */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Sombra */
+}
+
+.dhl-logo {
+    display: flex; /* Layout flex */
+    align-items: center; /* Alinha itens */
+}
+
+.sync-indicator {
+    display: inline-flex; /* Layout flex */
+    align-items: center; /* Alinha itens */
+    gap: 0.5rem; /* Espaçamento */
+    padding: 0.4rem 1rem; /* Padding */
+    background: var(--dhl-white); /* Fundo branco */
+    border-radius: 20px; /* Bordas arredondadas */
+    font-size: 0.85rem; /* Tamanho pequeno */
+    font-weight: 600; /* Peso semi-bold */
+    color: var(--dhl-black); /* Texto preto */
+}
+
+.sync-dot {
+    width: 8px; /* Largura */
+    height: 8px; /* Altura */
+    background: var(--dhl-red); /* Fundo vermelho */
+    border-radius: 50%; /* Circular */
+    animation: pulse 2s infinite; /* Animação de pulso */
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; } /* Opacidade total */
+    50% { opacity: 0.5; } /* Opacidade reduzida */
+}
+
+.live-clock {
+    font-weight: 600; /* Peso semi-bold */
+    font-size: 1rem; /* Tamanho da fonte */
+    color: var(--dhl-black); /* Cor preta */
+    font-variant-numeric: tabular-nums; /* Números tabulares */
+}
+
+/* ===== BOTÕES ===== */
+/* Estilos para botões primários e secundários */
+.btn-primary {
+    background: var(--dhl-red); /* Fundo vermelho */
+    color: var(--dhl-white); /* Texto branco */
+    padding: 0.6rem 1.2rem; /* Padding */
+    border-radius: 9999px; /* Bordas arredondadas */
+    font-weight: 600; /* Peso semi-bold */
+    font-size: 0.9rem; /* Tamanho */
+    border: none; /* Remove borda */
+    cursor: pointer; /* Cursor pointer */
+    transition: all 0.3s ease; /* Transição */
+    box-shadow: 0 4px 12px rgba(212, 5, 17, 0.3); /* Sombra */
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px); /* Elevação no hover */
+    box-shadow: 0 6px 16px rgba(212, 5, 17, 0.4); /* Sombra maior */
+}
+
+.btn-secondary {
+    background: var(--dhl-yellow); /* Fundo amarelo */
+    color: var(--dhl-black); /* Texto preto */
+    padding: 0.6rem 1.2rem; /* Padding */
+    border-radius: 9999px; /* Bordas arredondadas */
+    font-weight: 600; /* Peso semi-bold */
+    font-size: 0.9rem; /* Tamanho */
+    border: none; /* Remove borda */
+    cursor: pointer; /* Cursor pointer */
+    transition: all 0.3s ease; /* Transição */
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px); /* Elevação no hover */
+    opacity: 0.95; /* Opacidade reduzida */
+}
+
+/* ===== ABAS DE FILTRO ===== */
+/* Estilos para as abas de filtro */
+.filter-tabs {
+    display: flex; /* Layout flex */
+    gap: 1rem; /* Espaçamento */
+    border-bottom: 2px solid var(--border-muted); /* Borda inferior */
+    padding-bottom: 1rem; /* Padding inferior */
+}
+
+.filter-tab {
+    padding: 0.5rem 1rem; /* Padding */
+    border: none; /* Remove borda */
+    background: none; /* Fundo transparente */
+    cursor: pointer; /* Cursor pointer */
+    font-weight: 600; /* Peso semi-bold */
+    font-size: 0.95rem; /* Tamanho */
+    color: var(--dhl-black); /* Texto preto */
+    position: relative; /* Posição relativa */
+    transition: all 0.3s ease; /* Transição */
+}
+
+.filter-tab.active {
+    color: var(--dhl-black); /* Texto preto */
+}
+
+.filter-tab.active::after {
+    content: ''; /* Pseudo-elemento */
+    position: absolute; /* Posição absoluta */
+    bottom: -1rem; /* Distância inferior */
+    left: 0; /* Alinhamento esquerdo */
+    right: 0; /* Alinhamento direito */
+    height: 3px; /* Altura */
+    background: var(--dhl-red); /* Fundo vermelho */
+    border-radius: 2px; /* Bordas arredondadas */
+}
+
+/* ===== BADGES ===== */
+/* Estilos para badges */
+.badge {
+    display: inline-flex; /* Layout flex */
+    align-items: center; /* Alinha itens */
+    justify-content: center; /* Centraliza */
+    padding: 0.35rem 0.8rem; /* Padding */
+    border-radius: 20px; /* Bordas arredondadas */
+    font-size: 0.75rem; /* Tamanho pequeno */
+    font-weight: 700; /* Peso bold */
+    letter-spacing: 0.05em; /* Espaçamento */
+    text-transform: uppercase; /* Maiúsculo */
+}
+
+.badge-in,
+.badge-out,
+.badge-doca,
+.status-chegada,
+.status-doca,
+.status-despacho {
+    background: rgba(212, 5, 17, 0.12); /* Fundo vermelho sutil */
+    color: var(--dhl-red); /* Texto vermelho */
+}
+
+/* ===== CONTAINER DA TABELA ===== */
+/* Estilos para o container da tabela */
+.table-container {
+    background: var(--dhl-white); /* Fundo branco */
+    border-radius: 1rem; /* Bordas arredondadas */
+    overflow-x: auto; /* Rolagem horizontal */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Sombra */
+}
+
+/* ===== TABELA ===== */
+/* Estilos para a tabela */
+table {
+    width: 100%; /* Largura total */
+    border-collapse: collapse; /* Colapsa bordas */
+    min-width: 1200px; /* Largura mínima */
+}
+
+thead {
+    position: sticky; /* Fixa no topo */
+    top: 0; /* Distância do topo */
+    z-index: 10; /* Z-index alto */
+}
+
+th,
+td {
+    padding: 1rem 1.2rem; /* Padding */
+    border-bottom: 1px solid var(--dhl-black); /* Borda inferior */
+    text-align: left; /* Alinhamento esquerdo */
+    white-space: nowrap; /* Não quebra linha */
+    overflow: hidden; /* Oculta overflow */
+    text-overflow: ellipsis; /* Trunca texto */
+    font-size: 0.9rem; /* Tamanho */
+}
+
+th {
+    background: var(--dhl-yellow); /* Fundo amarelo */
+    color: var(--dhl-black); /* Texto preto */
+    font-weight: 700; /* Peso bold */
+    text-transform: uppercase; /* Maiúsculo */
+    letter-spacing: 0.08em; /* Espaçamento */
+    border-bottom: 2px solid var(--dhl-black); /* Borda inferior grossa */
+}
+
+tbody tr:hover {
+    background: rgba(212, 5, 17, 0.04); /* Fundo sutil no hover */
+}
+
+td.text-center { text-align: center; } /* Centraliza texto */
+td.text-bold { font-weight: 700; text-transform: uppercase; } /* Texto bold maiúsculo */
+
+.status-left {
+    display: flex; /* Layout flex */
+    flex-direction: column; /* Direção coluna */
+    gap: 0.3rem; /* Espaçamento */
+    align-items: flex-start; /* Alinha à esquerda */
+}
+
+.status-left .badge { font-size: 0.65rem; } /* Badge menor */
+
+.status-cell {
+    display: flex; /* Layout flex */
+    align-items: center; /* Alinha itens */
+    gap: 0.5rem; /* Espaçamento */
+}
+
+.status-cell span:first-child { font-size: 1.1rem; } /* Primeiro span maior */
+
+.status-cell .badge { margin: 0; } /* Remove margem do badge */
+
+.action-btn {
+    display: inline-flex; /* Layout flex */
+    align-items: center; /* Alinha itens */
+    justify-content: center; /* Centraliza */
+    width: 2.5rem; /* Largura */
+    height: 2.5rem; /* Altura */
+    border: none; /* Remove borda */
+    border-radius: 9999px; /* Circular */
+    background: rgba(212, 5, 17, 0.15); /* Fundo vermelho sutil */
+    color: var(--dhl-red); /* Texto vermelho */
+    cursor: pointer; /* Cursor pointer */
+    transition: all 0.2s ease; /* Transição */
+}
+
+.action-btn:hover { background: rgba(212, 5, 17, 0.25); } /* Fundo mais escuro no hover */
+
+/* ===== CARDS DE MÉTRICAS ===== */
+/* Estilos para os cards de métricas */
+.metric-card {
+    background: var(--dhl-white); /* Fundo branco */
+    border-radius: 1rem; /* Bordas arredondadas */
+    padding: 1.5rem; /* Padding */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Sombra */
+    transition: all 0.3s ease; /* Transição */
+}
+
+.metric-card:hover {
+    transform: translateY(-4px); /* Elevação no hover */
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12); /* Sombra maior */
+}
+
+.metric-card.red { border-top: 4px solid var(--dhl-red); } /* Borda superior vermelha */
+.metric-card.yellow { border-top: 4px solid var(--dhl-yellow); } /* Borda superior amarela */
+.metric-card.blue { border-top: 4px solid #2563eb; } /* Borda superior azul */
+.metric-card.green { border-top: 4px solid var(--dhl-dark-green); } /* Borda superior verde */
+.metric-card.purple { border-top: 4px solid #7c3aed; } /* Borda superior roxa */
+
+.checkin-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 1rem;
+    background: #ffffff;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+}
+
+.checkin-item-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.checkin-item-type {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--dhl-black);
+    text-transform: uppercase;
+}
+
+.checkin-item-time {
+    font-size: 0.85rem;
+    color: #61748b;
+}
+
+.checkin-item-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+    color: #334155;
+}
+
+.metric-label {
+    font-size: 0.8rem; /* Tamanho pequeno */
+    text-transform: uppercase; /* Maiúsculo */
+    color: var(--dhl-black); /* Texto preto */
+    font-weight: 600; /* Peso semi-bold */
+    letter-spacing: 0.1em; /* Espaçamento */
+}
+
+.metric-value {
+    font-size: 2.5rem; /* Tamanho grande */
+    font-weight: 800; /* Peso black */
+    color: var(--dhl-black); /* Texto preto */
+    line-height: 1; /* Altura da linha */
+    margin-top: 0.5rem; /* Margem superior */
+}
+
+/* ===== BARRA DE BUSCA ===== */
+/* Estilos para a barra de busca */
+.search-bar {
+    background: var(--dhl-white); /* Fundo branco */
+    border: 1px solid var(--dhl-black); /* Borda preta */
+    border-radius: 9999px; /* Bordas arredondadas */
+    padding: 0.6rem 1.2rem; /* Padding */
+    font-size: 0.95rem; /* Tamanho */
+    width: 100%; /* Largura total */
+    max-width: 350px; /* Largura máxima */
+    transition: all 0.3s ease; /* Transição */
+}
+
+.search-bar:focus {
+    outline: none; /* Remove outline */
+    border-color: var(--dhl-red); /* Borda vermelha no foco */
+    box-shadow: 0 0 0 3px rgba(212, 5, 17, 0.1); /* Sombra de foco */
+}
+
+@media (max-width: 1024px) {
+    .navbar-fullwidth-container {
+        flex-wrap: wrap;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .navbar-left,
+    .navbar-right,
+    .navbar-center {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .navbar-left,
+    .navbar-right {
+        min-width: auto;
+        margin: 0.35rem 0;
+    }
+
+    .navbar-center {
+        order: -1;
+        margin-bottom: 0.5rem;
+    }
+
+    .filter-tabs {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .filter-tab {
+        flex: 1 1 auto;
+        min-width: 140px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .navbar-fullwidth-container {
+        gap: 0.75rem;
+        padding: 0.75rem 0.5rem;
+    }
+
+    .brand-logo {
+        width: 120px;
+    }
+
+    .brand-logo-suzano {
+        width: 80px;
+        margin-left: 0.5rem;
+    }
+
+    .metric-card {
+        padding: 1.25rem;
+    }
+
+    .metric-value {
+        font-size: 2rem;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ===== ESTADO VAZIO ===== */
+/* Estilos para estado vazio */
+.empty-state {
+    text-align: center; /* Centraliza texto */
+    padding: 3rem; /* Padding */
+    color: var(--dhl-black); /* Texto preto */
+}
+
+/* ===== BADGES DE STATUS ===== */
+/* Estilos para badges de status */
+.status-badge {
+    display: inline-flex; /* Layout flex */
+    align-items: center; /* Alinha itens */
+    gap: 0.3rem; /* Espaçamento */
+    padding: 0.4rem 0.8rem; /* Padding */
+    border-radius: 0.5rem; /* Bordas arredondadas */
+    font-size: 0.75rem; /* Tamanho pequeno */
+    font-weight: 600; /* Peso semi-bold */
+}
+
+.status-chegada,
+.status-doca,
+.status-despacho {
+    background: rgba(212, 5, 17, 0.15); /* Fundo vermelho sutil */
+    color: var(--dhl-red); /* Texto vermelho */
+}
+
+/* ===== UTILITÁRIOS GERAIS ===== */
+/* Classes utilitárias para cores e estilos */
+.bg-dhl-yellow { background: var(--dhl-yellow) !important; } /* Fundo amarelo */
+.text-dhl-yellow { color: var(--dhl-yellow) !important; } /* Texto amarelo */
+.text-dark-green { color: var(--dhl-dark-green) !important; } /* Texto verde */
+.border-muted { border-color: var(--border-muted) !important; } /* Borda muted */
+.text-dhl-black { color: var(--dhl-black) !important; } /* Texto preto */
+.bg-panel { background: var(--dhl-white) !important; } /* Fundo painel */
+.bg-dhl-black { background: var(--dhl-black) !important; } /* Fundo preto */
+
+.btn-logout { background: var(--dhl-black); color: var(--dhl-white); padding: 0.6rem 1rem; border-radius: 9999px; font-weight: 600; transition: background-color 0.2s ease; } /* Botão logout */
+.btn-logout:hover { background: #b90112; } /* Hover do botão logout */
+
+.navbar-page-subtitle {
+    font-size: 0.75rem;
+    color: var(--dhl-black);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+}
+
+.navbar-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--dhl-white);
+    color: var(--dhl-black);
+    padding: 0.65rem 1rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.sync-dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    background: var(--dhl-dark-green);
+    border-radius: 9999px;
+}
+
+.brand-logo-suzano {
+    width: 90px;
+    height: auto;
+    margin-left: 1rem;
+}
+
+.navbar-page-subtitle {
+    font-size: 0.8rem;
+    color: var(--dhl-black);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.logos-center {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.navbar-avatar {
+    width: 3rem;
+    height: 3rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: var(--dhl-white);
+    color: var(--dhl-yellow);
+    border: 2px solid var(--dhl-black);
+    font-weight: 800;
+}
+
+.navbar-clock {
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--dhl-black);
+    padding: 0.65rem 1rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.navbar-button {
+    background: var(--dhl-black);
+    color: var(--dhl-white);
+    border: none;
+    border-radius: 9999px;
+    padding: 0.75rem 1.2rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s ease;
+}
+
+.navbar-button:hover {
+    background: #222;
+}
+
+.header-dhl {
+    background: var(--dhl-yellow);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.dhl-logo {
+    display: flex;
+    align-items: center;
+}
+
+.sync-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 1rem;
+    background: var(--dhl-white);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--dhl-black);
+}
+
+.sync-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--dhl-red);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.live-clock {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--dhl-black);
+    font-variant-numeric: tabular-nums;
+}
+
+.btn-primary {
+    background: var(--dhl-red);
+    color: var(--dhl-white);
+    padding: 0.6rem 1.2rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(212, 5, 17, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(212, 5, 17, 0.4);
+}
+
+.btn-secondary {
+    background: var(--dhl-yellow);
+    color: var(--dhl-black);
+    padding: 0.6rem 1.2rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    opacity: 0.95;
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 1rem;
+    border-bottom: 2px solid var(--border-muted);
+    padding-bottom: 1rem;
+}
+
+.filter-tab {
+    padding: 0.5rem 1rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--dhl-black);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.filter-tab.active {
+    color: var(--dhl-black);
+}
+
+.filter-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1rem;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--dhl-red);
+    border-radius: 2px;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.badge-in,
+.badge-out,
+.badge-doca,
+.status-chegada,
+.status-doca,
+.status-despacho {
+    background: rgba(212, 5, 17, 0.12);
+    color: var(--dhl-red);
+}
+
+.table-container {
+    background: var(--dhl-white);
+    border-radius: 1rem;
+    overflow-x: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1200px;
+}
+
+thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+th,
+td {
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--dhl-black);
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+}
+
+th {
+    background: var(--dhl-yellow);
+    color: var(--dhl-black);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 2px solid var(--dhl-black);
+}
+
+tbody tr:hover {
+    background: rgba(212, 5, 17, 0.04);
+}
+
+td.text-center { text-align: center; }
+
+td.text-bold { font-weight: 700; text-transform: uppercase; }
+
+.status-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    align-items: flex-start;
+}
+
+.status-left .badge { font-size: 0.65rem; }
+
+.status-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-cell span:first-child { font-size: 1.1rem; }
+
+.status-cell .badge { margin: 0; }
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: none;
+    border-radius: 9999px;
+    background: rgba(212, 5, 17, 0.15);
+    color: var(--dhl-red);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover { background: rgba(212, 5, 17, 0.25); }
+
+.metric-card {
+    background: var(--dhl-white);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.metric-card.red { border-top: 4px solid var(--dhl-red); }
+.metric-card.yellow { border-top: 4px solid var(--dhl-yellow); }
+.metric-card.blue { border-top: 4px solid var(--dhl-red); }
+.metric-card.green { border-top: 4px solid var(--dhl-dark-green); }
+
+.metric-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--dhl-black);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+}
+
+.metric-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--dhl-black);
+    line-height: 1;
+    margin-top: 0.5rem;
+}
+
+.search-bar {
+    background: var(--dhl-white);
+    border: 1px solid var(--dhl-black);
+    border-radius: 9999px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.95rem;
+    width: 100%;
+    max-width: 350px;
+    transition: all 0.3s ease;
+}
+
+.search-bar:focus {
+    outline: none;
+    border-color: var(--dhl-red);
+    box-shadow: 0 0 0 3px rgba(212, 5, 17, 0.1);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--dhl-black);
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+
+/* Responsive Design Rules */
+@media (max-width: 768px) {
+    .admin-container {
+        padding: 1rem;
+    }
+    
+    .admin-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .admin-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .metric-card {
+        padding: 1rem;
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+    }
+    
+    .filters-section {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .search-bar {
+        max-width: 100%;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .data-table {
+        min-width: 600px;
+        font-size: 0.85rem;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 0.5rem;
+        white-space: nowrap;
+    }
+    
+    .modal-content {
+        width: 95%;
+        max-width: none;
+        margin: 1rem;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .modal-header h2 {
+        font-size: 1.25rem;
+    }
+    
+    .detail-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .detail-item {
+        padding: 0.75rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-container {
+        padding: 0.5rem;
+    }
+    
+    .admin-header h1 {
+        font-size: 1.25rem;
+    }
+    
+    .metric-card {
+        padding: 0.75rem;
+    }
+    
+    .metric-value {
+        font-size: 1.5rem;
+    }
+    
+    .metric-label {
+        font-size: 0.7rem;
+    }
+    
+    .data-table {
+        font-size: 0.8rem;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 0.25rem;
+    }
+    
+    .modal-content {
+        width: 98%;
+        margin: 0.5rem;
+    }
+    
+    .modal-header h2 {
+        font-size: 1.1rem;
+    }
+    
+    .detail-item {
+        padding: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    .data-table {
+        min-width: 800px;
+    }
+}
+    gap: 0.3rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-chegada,
+.status-doca,
+.status-despacho {
+    background: rgba(212, 5, 17, 0.15);
+    color: var(--dhl-red);
+}
+
+.bg-dhl-yellow { background: var(--dhl-yellow) !important; }
+.text-dhl-yellow { color: var(--dhl-yellow) !important; }
+.text-dark-green { color: var(--dhl-dark-green) !important; }
+.border-muted { border-color: var(--border-muted) !important; }
+.text-dhl-black { color: var(--dhl-black) !important; }
+.bg-panel { background: var(--dhl-white) !important; }
+.bg-dhl-black { background: var(--dhl-black) !important; }
+
+.btn-logout { background: var(--dhl-black); color: var(--dhl-white); padding: 0.6rem 1rem; border-radius: 9999px; font-weight: 600; transition: background-color 0.2s ease; }
+.btn-logout:hover { background: #b90112; }

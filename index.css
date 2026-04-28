@@ -1,0 +1,189 @@
+/* ===== CONFIGURAÇÕES GLOBAIS E TOKENS DE DESIGN ===== */
+:root {
+    --dhl-yellow: #FFCC00;
+    --dhl-red: #D40511;
+    --dhl-black: #000000;
+    --dhl-white: #FFFFFF;
+    --dhl-dark-green: #006443;
+    --border-muted: rgba(0, 0, 0, 0.12);
+    --font-stack: 'DHL Delivery', 'Frutiger', 'Helvetica', 'Arial', sans-serif;
+}
+
+body {
+    background: var(--dhl-white);
+    font-family: var(--font-stack);
+    color: var(--dhl-black);
+    overflow-x: hidden;
+    line-height: 1.5;
+    font-weight: 400;
+}
+
+.form-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: 1rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    border: 1px solid transparent;
+    margin-bottom: 1.5rem;
+}
+
+.form-alert-hidden,
+.form-alert.hidden {
+    display: none !important;
+}
+
+.form-alert-success {
+    background: #ecfdf5;
+    color: #166534;
+    border-color: #a7f3d0;
+}
+
+.form-alert-error {
+    background: #fef2f2;
+    color: #991b1b;
+    border-color: #fecaca;
+}
+
+.form-alert-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.75rem;
+    min-height: 1.75rem;
+    border-radius: 9999px;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* ===== UTILITÁRIOS DE COR ===== */
+.dhl-yellow { background: var(--dhl-yellow); }
+.dhl-red { background: var(--dhl-red); }
+.dhl-dark-green { background: var(--dhl-dark-green); }
+
+/* ===== LOGOTIPOS ===== */
+.brand-logo { width: 140px; height: auto; display: block; }
+.brand-logo-suzano { width: 110px; max-height: 48px; height: auto; display: block; margin-left: 1rem; object-fit: contain; }
+
+/* ===== BARRA DE NAVEGAÇÃO ===== */
+.navbar-fullwidth {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: var(--dhl-yellow);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+    z-index: 50;
+}
+
+.navbar-fullwidth-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+}
+
+.navbar-left, .navbar-right { display: flex; align-items: center; gap: 1rem; }
+.navbar-center { display: flex; justify-content: center; flex: 1; }
+.navbar-page-title { font-size: 1.1rem; font-weight: 800; color: var(--dhl-black); }
+.navbar-page-subtitle { font-size: 0.8rem; color: var(--dhl-black); text-transform: uppercase; letter-spacing: 0.12em; }
+.navbar-clock { background: rgba(0, 0, 0, 0.08); color: var(--dhl-black); padding: 0.65rem 1rem; border-radius: 9999px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ===== CARDS DE CONTEÚDO ===== */
+.glass-card {
+    background: #f5f5f6;
+    border-radius: 24px;
+    box-shadow: 0 14px 35px -15px rgba(0, 0, 0, 0.18);
+    border-left: 6px solid var(--dhl-yellow);
+    margin-bottom: 2rem;
+}
+
+.bg-panel, .bg-white { background: #f8f8f9 !important; }
+
+/* ===== CAMPOS DE ENTRADA ===== */
+.input-field {
+    width: 100%;
+    background: var(--dhl-white);
+    border: 1px solid var(--border-muted);
+    border-radius: 16px;
+    padding: 14px 18px;
+    font-size: 14px;
+    color: var(--dhl-black);
+    transition: all 0.2s ease;
+    outline: none;
+    font-weight: 400;
+}
+
+.input-field:focus {
+    border-color: var(--dhl-red);
+    box-shadow: 0 0 0 3px rgba(212, 5, 17, 0.12);
+}
+
+/* ===== TABELAS (AJUSTADO PARA CENTRALIZAÇÃO) ===== */
+.table-fixed-cols { 
+    table-layout: fixed; 
+    width: 100%; 
+    margin: 0 auto;
+    border-collapse: separate;
+    border-spacing: 8px 0; /* Espaçamento entre colunas para os inputs */
+}
+
+.table-fixed-cols th { 
+    text-align: center; 
+    padding: 12px 4px;
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.table-fixed-cols td { 
+    text-align: center; 
+    padding: 8px 0;
+    vertical-align: middle;
+}
+
+/* Larguras padronizadas das colunas */
+.col-code { width: 120px; }
+.col-num { width: 90px; }
+.col-total { width: 110px; }
+
+/* Inputs dentro de tabelas (AJUSTADO PARA TAMANHO PADRÃO) */
+.table-input {
+    width: 100%;
+    height: 45px; /* Altura padrão */
+    background: var(--dhl-white);
+    text-align: center;
+    border-radius: 12px;
+    border: 1px solid var(--border-muted);
+    transition: all 0.2s ease;
+    outline: none;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--dhl-black);
+    display: block;
+    margin: 0 auto;
+}
+
+.table-input:focus {
+    border-color: var(--dhl-red);
+    box-shadow: 0 0 0 2px rgba(212, 5, 17, 0.1);
+}
+
+/* ===== CARDS DE TOTAIS (CENTRALIZAÇÃO TOTAL) ===== */
+.total-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centraliza horizontalmente */
+    justify-content: center; /* Centraliza verticalmente */
+    text-align: center;
+    min-height: 140px;
+}
+
+/* ===== RESPONSIVO ===== */
+@media (max-width: 1024px) {
+    .page-shell, #mainChecklist, .glass-card { width: 100%; max-width: 100%; }
+    .navbar-fullwidth-container { flex-wrap: wrap; justify-content: center; }
+    .navbar-left, .navbar-right, .navbar-center { width: 100%; justify-content: center; text-align: center; margin: 0.25rem 0; }
+}

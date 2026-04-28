@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <!-- ===== CONFIGURAÇÃO DO DOCUMENTO ===== -->
+    <!-- Define o tipo de documento HTML5 e idioma português brasileiro -->
+    <meta charset="UTF-8"> <!-- Codificação de caracteres UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Viewport responsivo -->
+    <title>DHL Logistics | Smart Control Full</title> <!-- Título da página -->
+
+    <!-- ===== DEPENDÊNCIAS EXTERNAS ===== -->
+    <!-- Carrega o Tailwind CSS via CDN para estilos utilitários -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- ===== ESTILOS PRÓPRIOS ===== -->
+    <!-- Carrega o arquivo CSS personalizado com estilos DHL -->
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <!-- ===== CABEÇALHO PRINCIPAL ===== -->
+    <!-- Barra de navegação fixa no topo com logos e informações -->
+    <header class="navbar-fullwidth mb-8">
+        <div class="navbar-fullwidth-container max-w-[1400px] mx-auto px-6 py-4">
+            <!-- Seção esquerda: Título e subtítulo da página -->
+            <div class="navbar-left">
+                <div class="navbar-page-title">Checklist Final</div> <!-- Título principal -->
+                <div class="navbar-page-subtitle">DHL / Suzano CD CWB</div> <!-- Subtítulo com localização -->
+            </div>
+
+            <!-- Seção central: Logotipos da DHL e Suzano -->
+            <div class="navbar-center logos-center">
+                <img src="./images/DHL_Logo_BF_rgb.png" alt="DHL" class="brand-logo" /> <!-- Logo DHL -->
+                <img src="./images/suzano-logo.png" alt="Suzano" class="brand-logo-suzano" /> <!-- Logo Suzano -->
+            </div>
+
+            <!-- Seção direita: Relógio ao vivo -->
+            <div class="navbar-right">
+                <div id="liveClock" class="navbar-clock">00:00:00</div> <!-- Relógio atualizado dinamicamente -->
+            </div>
+        </div>
+    </header>
+
+
+    <!-- ===== CONTEÚDO PRINCIPAL ===== -->
+    <!-- Container principal com largura máxima e padding responsivo -->
+    <div class="page-shell px-4 md:px-8">
+        <div class="max-w-[1400px] mx-auto">
+            <!-- ===== FORMULÁRIO PRINCIPAL ===== -->
+            <!-- Formulário que contém todas as seções do checklist -->
+            <form id="mainChecklist" onsubmit="event.preventDefault(); saveChecklist(event);">
+            <div id="formAlert" class="form-alert hidden" role="alert"></div>
+
+            <!-- ===== SEÇÃO 1: IDENTIFICAÇÃO GERAL ===== -->
+            <!-- Campos para informações básicas da operação -->
+            <section class="glass-card p-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="w-8 h-8 dhl-red text-white flex items-center justify-center rounded-lg font-black">01</span> <!-- Número da seção -->
+                    <h2 class="text-black font-bold uppercase">Identificação Geral</h2> <!-- Título da seção -->
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    <!-- Campo Fluxo: Seleção entre Inbound e Outbound -->
+                    <div class="md:col-span-4">
+                        <label class="text-[10px] font-bold text-black uppercase">Fluxo</label>
+                        <select id="operationTypeSelect" class="input-field font-bold text-dhl-red" required>
+                            <option value="INBOUND">INBOUND (Entrada) </option>
+                            <option value="OUTBOUND">OUTBOUND (Saída) </option>
+                        </select>
+                    </div>
+                    <!-- Campo NF/DT: Nota fiscal ou documento de transporte -->
+                    <div class="md:col-span-4">
+                        <label class="text-[10px] font-bold text-black uppercase">NF / DT</label>
+                        <input id="dtNumberInput" type="text" class="input-field" inputmode="numeric" pattern="\d*" required oninput="numericOnly(this)">
+                    </div>
+                    <!-- Campo Doca: Identificação da doca -->
+                    <div class="md:col-span-4">
+                        <label class="text-[10px] font-bold text-black uppercase">Doca</label>
+                        <input id="docaInput" type="text" class="input-field uppercase" required>
+                    </div>
+
+                    <!-- Campo Motorista: Nome do motorista -->
+                    <div class="md:col-span-6">
+                        <label class="text-[10px] font-bold text-black uppercase">Motorista</label>
+                        <input id="driverNameInput" type="text" class="input-field" required>
+                    </div>
+                    <!-- Campo CPF/CNH: Documentos do motorista -->
+                    <div class="md:col-span-3">
+                        <label class="text-[10px] font-bold text-black uppercase">CPF / CNH</label>
+                        <input id="cpfCnhInput" type="text" class="input-field" inputmode="numeric" pattern="\d*" required oninput="numericOnly(this)">
+                    </div>
+                    <!-- Campo Transportadora: Nome da empresa transportadora -->
+                    <div class="md:col-span-3">
+                        <label class="text-[10px] font-bold text-black uppercase">Transportadora</label>
+                        <input id="transportadoraInput" type="text" class="input-field" required>
+                    </div>
+
+                    <!-- Campos para placas dos veículos -->
+                    <div class="md:col-span-4">
+                        <label class="text-[10px] font-bold text-black uppercase">Placa Cavalo</label>
+                        <input id="placaCavaloInput" type="text" class="input-field uppercase" required>
+                    </div>
+                    <div class="md:col-span-4">
+                        <label class="text-[10px] font-bold text-black uppercase">Placa Carreta 1</label>
+                        <input id="placaCarreta1Input" type="text" class="input-field uppercase" required>
+                    </div>
+                    <div class="md:col-span-4">
+                        <label class="text-[10px] font-bold text-black uppercase">Placa Carreta 2</label>
+                        <input id="placaCarreta2Input" type="text" class="input-field uppercase" required>
+                    </div>
+                                        <div class="md:col-span-4">
+                        <label class="text-[10px] font-bold text-black uppercase">Origem</label>
+                        <input id="origemInput" type="text" class="input-field uppercase" required>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== SEÇÃO 2: HIGIENE E ESTRUTURA ===== -->
+            <!-- Grid de critérios de higiene gerados dinamicamente -->
+            <section class="glass-card p-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="w-8 h-8 dhl-red text-white flex items-center justify-center rounded-lg font-black">02</span> <!-- Número da seção -->
+                    <h2 class="text-black font-bold uppercase">Higiene e Estrutura</h2> <!-- Título da seção -->
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="hygieneGrid"></div> <!-- Container para os critérios -->
+                <div class="mt-6">
+                    <label for="hygieneObservation" class="text-[10px] font-bold text-black uppercase block mb-2">Observação de Higiene e Estrutura</label>
+                    <textarea id="hygieneObservation" class="w-full min-h-[90px] bg-white border border-muted rounded-2xl p-4 text-xs font-semibold outline-none focus-ring-dhl-red" placeholder="Registre observações importantes sobre higiene, limpeza e condição estrutural."></textarea>
+                </div>
+            </section>
+
+<!-- ===== SEÇÃO 3: CONFERÊNCIA TÉCNICA DE ITENS (TRECHO CORRIGIDO) ===== -->
+<section class="glass-card p-0 overflow-hidden border-l-4 border-dhl-yellow">
+    <div class="max-w-[1200px] mx-auto">
+        <div class="bg-white p-5 flex flex-wrap justify-between items-center gap-3 border-b border-muted">
+            <div class="flex items-center gap-3">
+                <span class="w-8 h-8 dhl-yellow text-black flex items-center justify-center rounded-lg font-black italic">03</span>
+                <h2 class="text-black font-bold uppercase">Conferência Técnica de Itens</h2>
+            </div>
+            <button type="button" onclick="addItemRow()" class="dhl-yellow text-black px-6 py-2 rounded-xl text-xs font-black uppercase shadow-lg">＋ Item</button>
+        </div>
+
+        <!-- Container da Tabela Centralizado -->
+        <div class="overflow-x-auto p-6">
+            <table class="table-fixed-cols">
+                <thead>
+                    <tr>
+                        <th class="col-code">Código</th>
+                        <th class="col-num">Previsto</th>
+                        <th class="col-num">Realizado</th>
+                        <th class="col-num text-dhl-red">Falta</th>
+                        <th class="col-num text-dark-green">Sobra</th>
+                        <th class="col-num">Avaria</th>
+                        <th class="col-num">Scrap</th>
+                        <th class="col-num">Av. Int.</th>
+                        <th class="col-total">Total Bons</th>
+                        <th class="w-[50px]"></th>
+                    </tr>
+                </thead>
+                <tbody id="itemTableBody">
+                    <!-- Exemplo de como deve ser a linha gerada pelo JS para ficar centralizada -->
+                    <!-- 
+                    <tr>
+                        <td><input type="text" class="table-input" placeholder="Cód."></td>
+                        <td><input type="number" class="table-input"></td>
+                        <td><input type="number" class="table-input"></td>
+                        <td class="font-bold text-dhl-red">0</td>
+                        <td class="font-bold text-dark-green">0</td>
+                        <td><input type="number" class="table-input"></td>
+                        <td><input type="number" class="table-input"></td>
+                        <td><input type="number" class="table-input"></td>
+                        <td class="font-bold">0</td>
+                        <td><button class="text-gray-400">✕</button></td>
+                    </tr>
+                    -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ===== TOTALS E RESUMO (CENTRALIZADOS E PADRONIZADOS) ===== -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 w-full">
+            <div class="bg-panel p-6 rounded-2xl border border-muted shadow-sm total-card">
+                <p class="text-[10px] font-black text-black uppercase mb-3">Divergência (Faltas)</p>
+                <p id="totalFaltas" class="text-5xl font-black text-dhl-red">0</p>
+            </div>
+            <div class="bg-panel p-6 rounded-2xl border border-muted shadow-sm total-card">
+                <p class="text-[10px] font-black text-black uppercase mb-3">Total Sobras</p>
+                <p id="totalSobra" class="text-5xl font-black text-dark-green">0</p>
+            </div>
+            <div class="bg-panel p-6 rounded-2xl border-l-4 border-dhl-yellow shadow-sm total-card">
+                <p class="text-[10px] font-black text-black uppercase mb-3">Total Entrada</p>
+                <p id="totalBonsGeral" class="text-5xl font-black text-black">0</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+            <!-- ===== SEÇÃO 4: CONTROLE DE PALETES ===== -->
+            <section class="glass-card p-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="w-8 h-8 dhl-yellow text-black flex items-center justify-center rounded-lg font-black italic">04</span>
+                    <h2 class="text-black font-bold uppercase">Controle de Paletes (PBR)</h2>
+                </div>
+                <div class="grid grid-cols-1 gap-6 mb-2">
+                    <div class="bg-panel p-4 rounded-xl border border-muted">
+                        <label class="text-[10px] font-bold text-black uppercase block mb-2">Total de Paletes Utilizados</label>
+                        <input id="totalPbrInput" type="number" class="input-field font-black text-center" value="0" placeholder="0" min="0" step="1" required>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== SEÇÃO 5: OBSERVAÇÕES DA CARGA ===== -->
+            <!-- Campo de texto para observações adicionais -->
+            <section class="glass-card p-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="w-8 h-8 dhl-red text-white flex items-center justify-center rounded-lg font-black">05</span> <!-- Número da seção -->
+                    <h2 class="text-black font-bold uppercase">Observações da Carga</h2> <!-- Título da seção -->
+                </div>
+                <textarea id="cargoObservations" class="w-full h-[80px] bg-white border border-black rounded-xl p-4 text-xs font-semibold outline-none focus-ring-dhl-red" placeholder="Lote, detalhes de avaria, etc..."></textarea> <!-- Campo de texto -->
+            </section>
+
+            <!-- ===== SEÇÃO 6: LACRES E ASSINATURAS ===== -->
+            <!-- Campos para lacres e áreas de assinatura -->
+            <section class="glass-card p-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="w-8 h-8 dhl-red text-white flex items-center justify-center rounded-lg font-black">06</span> <!-- Número da seção -->
+                    <h2 class="text-black font-bold uppercase">Lacres e Assinaturas</h2> <!-- Título da seção -->
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- Campos para lacres -->
+                    <div><label class="text-[10px] font-bold text-black uppercase">Lacre 01</label><input id="lacre1Input" type="text" class="input-field" inputmode="numeric" pattern="\d*" required oninput="numericOnly(this)"></div>
+                    <div><label class="text-[10px] font-bold text-black uppercase">Lacre 02 <span class="text-xs font-normal text-slate-500">(opcional)</span></label><input id="lacre2Input" type="text" class="input-field" inputmode="numeric" pattern="\d*" oninput="numericOnly(this)"></div>
+                    <div><label class="text-[10px] font-bold text-black uppercase">Status Lacre</label><select id="statusLacreSelect" class="input-field" required><option value="">Selecione</option><option value="Íntegro">Íntegro</option><option value="Violado">Violado</option></select></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <!-- Áreas para assinaturas -->
+                    <div class="text-center">
+                        <p class="text-[10px] font-bold text-black uppercase mb-3">Assinatura Motorista</p>
+                        <div class="bg-white border-2 border-dashed border-black rounded-xl p-2">
+                            <canvas id="driverSignatureCanvas" class="signature-canvas w-full h-[160px]" style="touch-action: none;"></canvas>
+                            <button type="button" onclick="clearSignature('driverSignatureCanvas')" class="mt-3 btn-secondary">Limpar assinatura</button>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-[10px] font-bold text-black uppercase mb-3">Conferente (RE)</p>
+                        <div class="bg-white border-2 border-dashed border-black rounded-xl p-2">
+                            <canvas id="checkerSignatureCanvas" class="signature-canvas w-full h-[160px]" style="touch-action: none;"></canvas>
+                            <button type="button" onclick="clearSignature('checkerSignatureCanvas')" class="mt-3 btn-secondary">Limpar assinatura</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Botão de finalização -->
+                <button type="submit" class="w-full dhl-red text-white font-black py-5 rounded-2xl mt-8 uppercase tracking-widest shadow-xl btn-submit">Finalizar Checklist Operacional</button>
+            </section>
+        </form>
+    </div>
+</div>
+
+    <!-- ===== JAVASCRIPT ===== -->
+    <script type="module" src="firebase-init.js"></script>
+    <!-- Carrega o arquivo JavaScript para funcionalidades interativas -->
+    <script src="index.js"></script>
+</body>
+</html>
