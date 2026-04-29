@@ -149,7 +149,7 @@ function showAuthError(message) {
 function showAuthenticatedAdmin() {
     document.getElementById('authScreen')?.classList.add('hidden');
     document.getElementById('adminMain')?.classList.remove('hidden');
-    document.getElementById('signOutBtn')?.classList.remove('hidden');
+    document.getElementById('signOutBtn')?.classList.add('hidden');
     subscribeChecklists();
 }
 
@@ -651,18 +651,5 @@ document.getElementById('exportBtn').addEventListener('click', () => {
 
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
-    document.getElementById('signOutBtn')?.addEventListener('click', handleSignOut);
-
-    if (window.firebaseAuth && window.firebaseOnAuthStateChanged) {
-        window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
-            if (user) {
-                showAuthenticatedAdmin();
-            } else {
-                showUnauthenticatedAdmin();
-            }
-        });
-    } else {
-        showAuthenticatedAdmin();
-    }
+    showAuthenticatedAdmin();
 });

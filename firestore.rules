@@ -4,8 +4,8 @@ service cloud.firestore {
     // Apenas checklists podem ser criados (sem update/delete público)
     match /checklists/{document} {
       allow create: if true;
-      allow read: if request.auth != null;
-      allow delete: if request.auth != null;
+      allow read: if true;
+      allow delete: if true;
       allow update: if false;
     }
 
