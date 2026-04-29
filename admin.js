@@ -304,6 +304,7 @@ function renderTable() {
             <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.avariasInternas || 0)}</td> <!-- Internas -->
             <td class="text-center">
                 <button onclick="viewChecklistDetailsById(${JSON.stringify(checklist.id)})" class="action-btn edit-btn" title="Visualizar Detalhes">👁️</button> <!-- Botão visualizar -->
+                <button onclick="deleteChecklistById(${JSON.stringify(checklist.id)})" class="action-btn delete-btn" title="Excluir">🗑️</button> <!-- Botão excluir -->
             </td>
         `;
         // Adiciona a linha ao corpo da tabela
