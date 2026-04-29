@@ -303,12 +303,16 @@ function renderTable() {
             <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.scrap || 0)}</td> <!-- Scrap -->
             <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.avariasInternas || 0)}</td> <!-- Internas -->
             <td class="text-center">
-                <button onclick="viewChecklistDetailsById(${JSON.stringify(checklist.id)})" class="action-btn edit-btn" title="Visualizar Detalhes">👁️</button> <!-- Botão visualizar -->
-                <button onclick="deleteChecklistById(${JSON.stringify(checklist.id)})" class="action-btn delete-btn" title="Excluir">🗑️</button> <!-- Botão excluir -->
+                <button type="button" class="action-btn edit-btn view-btn" title="Visualizar Detalhes">👁️</button> <!-- Botão visualizar -->
+                <button type="button" class="action-btn delete-btn delete-row-btn" title="Excluir">🗑️</button> <!-- Botão excluir -->
             </td>
         `;
         // Adiciona a linha ao corpo da tabela
         tbody.appendChild(row);
+        const viewButton = row.querySelector('.view-btn');
+        const deleteButton = row.querySelector('.delete-row-btn');
+        if (viewButton) viewButton.addEventListener('click', () => viewChecklistDetailsById(checklist.id));
+        if (deleteButton) deleteButton.addEventListener('click', () => deleteChecklistById(checklist.id));
     });
 
     // Adiciona a tabela completa ao container
@@ -331,7 +335,7 @@ function viewChecklistDetails(index) {
 
     // Cria modal com detalhes completos
     const modal = document.createElement('div');
-    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    modal.className = 'detail-modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
     // Usa safeSetInnerHTML para prevenir XSS
     safeSetInnerHTML(modal, `
         <div class="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
@@ -519,6 +523,11 @@ function calculateTotalFardos(checklist) {
     return checklist.items.reduce((sum, item) => sum + Number(item.previsto || 0), 0);
 }
 
+function closeDetailModal() {
+    const modal = document.querySelector('.detail-modal-overlay');
+    if (modal) modal.remove();
+}
+
 // Função para editar um checklist (placeholder)
 function editChecklist(index) {
     // Por enquanto, redireciona para visualizar detalhes
@@ -536,10 +545,20 @@ async function deleteChecklist(index) {
     }
 
     try {
-        if (window.firebaseDeleteObject) {
-            await deleteChecklistFiles(checklist.id);
-        }
+        // if (window.firebaseDeleteObject) {
+        //     await deleteChecklistFiles(checklist.id);
+        // }
         await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, 'checklists', checklist.id));
+
+        // Fechar modal de detalhes caso esteja aberto
+        closeDetailModal();
+
+        // Atualizar estado local imediatamente para remover o registro do painel
+        allChecklists.splice(index, 1);
+        updateMetrics();
+        renderTable();
+
+        // Recarregar a lista apenas se não estiver usando listener em tempo real
         if (!window.firebaseOnSnapshot) {
             await loadChecklists();
         }
@@ -553,24 +572,24 @@ window.viewChecklistDetailsById = viewChecklistDetailsById;
 window.deleteChecklistById = deleteChecklistById;
 window.deleteChecklist = deleteChecklist;
 
-async function deleteChecklistFiles(checklistId) {
-    if (!window.firebaseStorage || !window.firebaseStorageRef || !window.firebaseDeleteObject) return;
+// async function deleteChecklistFiles(checklistId) {
+//     if (!window.firebaseStorage || !window.firebaseStorageRef || !window.firebaseDeleteObject) return;
 
-    const deletePromises = [];
-    for (let i = 1; i <= 6; i += 1) {
-        const storagePath = `checklists/${checklistId}/photo-${i}.jpg`;
-        const fileRef = window.firebaseStorageRef(window.firebaseStorage, storagePath);
-        deletePromises.push(
-            window.firebaseDeleteObject(fileRef).catch(err => {
-                if (err && err.code !== 'storage/object-not-found') {
-                    console.warn(`Falha ao excluir arquivo ${storagePath}:`, err);
-                }
-            })
-        );
-    }
+//     const deletePromises = [];
+//     for (let i = 1; i <= 6; i += 1) {
+//         const storagePath = `checklists/${checklistId}/photo-${i}.jpg`;
+//         const fileRef = window.firebaseStorageRef(window.firebaseStorage, storagePath);
+//         deletePromises.push(
+//             window.firebaseDeleteObject(fileRef).catch(err => {
+//                 if (err && err.code !== 'storage/object-not-found') {
+//                     console.warn(`Falha ao excluir arquivo ${storagePath}:`, err);
+//                 }
+//             })
+//         );
+//     }
 
-    await Promise.all(deletePromises);
-}
+//     await Promise.all(deletePromises);
+// }
 
 function viewChecklistDetailsById(id) {
     const index = allChecklists.findIndex(item => item.id === id);

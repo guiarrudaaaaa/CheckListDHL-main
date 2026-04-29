@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+// import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 import {
   getFirestore,
   collection,
@@ -22,7 +22,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyA8mJ2WWg9edJNDMqDLt9Jp-AQTzj66EeY",
   authDomain: "check-list-dhl-74819.firebaseapp.com",
   projectId: "check-list-dhl-74819",
-  storageBucket: "check-list-dhl-74819.firebasestorage.app",
+//   storageBucket: "check-list-dhl-74819.firebasestorage.app", // Comente esta linha
   messagingSenderId: "249950457140",
   appId: "1:249950457140:web:a3d779e3f8075d134f6961",
   measurementId: "G-CZ0XZ14C68"
@@ -52,8 +52,8 @@ window.firebaseAuth = getAuth(app);
 window.firebaseSignInWithEmailAndPassword = signInWithEmailAndPassword;
 window.firebaseSignOut = signOut;
 window.firebaseOnAuthStateChanged = onAuthStateChanged;
-window.firebaseStorage = getStorage(app);
-window.firebaseStorageRef = storageRef;
-window.firebaseUploadString = uploadString;
-window.firebaseGetDownloadURL = getDownloadURL;
-window.firebaseDeleteObject = deleteObject;
+// window.firebaseStorage = getStorage(app);
+// window.firebaseStorageRef = storageRef;
+// window.firebaseUploadString = uploadString;
+// window.firebaseGetDownloadURL = getDownloadURL;
+// window.firebaseDeleteObject = deleteObject;

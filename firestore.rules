@@ -1,17 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Apenas checklists podem ser criados (sem update/delete público)
+    // Permite leitura, escrita, atualização e exclusão para qualquer um na coleção 'checklists'
     match /checklists/{document} {
-      allow create: if true;
-      allow read: if true;
-      allow delete: if true;
-      allow update: if false;
-    }
-
-    // Bloqueia tudo o resto
-    match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
   }
 }
