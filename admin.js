@@ -303,8 +303,8 @@ function renderTable() {
             <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.scrap || 0)}</td> <!-- Scrap -->
             <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.avariasInternas || 0)}</td> <!-- Internas -->
             <td class="text-center">
-                <button onclick="viewChecklistDetails(${globalIndex})" class="action-btn edit-btn" title="Visualizar Detalhes">👁️</button> <!-- Botão visualizar -->
-                <button onclick="deleteChecklist(${globalIndex})" class="action-btn delete-btn" title="Excluir">🗑️</button> <!-- Botão excluir -->
+                <button onclick="viewChecklistDetailsById(${JSON.stringify(checklist.id)})" class="action-btn edit-btn" title="Visualizar Detalhes">👁️</button> <!-- Botão visualizar -->
+                <button onclick="deleteChecklistById(${JSON.stringify(checklist.id)})" class="action-btn delete-btn" title="Excluir">🗑️</button> <!-- Botão excluir -->
             </td>
         `;
         // Adiciona a linha ao corpo da tabela
@@ -549,6 +549,10 @@ async function deleteChecklist(index) {
     }
 }
 
+window.viewChecklistDetailsById = viewChecklistDetailsById;
+window.deleteChecklistById = deleteChecklistById;
+window.deleteChecklist = deleteChecklist;
+
 async function deleteChecklistFiles(checklistId) {
     if (!window.firebaseStorage || !window.firebaseStorageRef || !window.firebaseDeleteObject) return;
 
@@ -566,6 +570,21 @@ async function deleteChecklistFiles(checklistId) {
     }
 
     await Promise.all(deletePromises);
+}
+
+function viewChecklistDetailsById(id) {
+    const index = allChecklists.findIndex(item => item.id === id);
+    if (index === -1) return;
+    viewChecklistDetails(index);
+}
+
+async function deleteChecklistById(id) {
+    const index = allChecklists.findIndex(item => item.id === id);
+    if (index === -1) {
+        alert('Registro não encontrado para exclusão. Atualize a página e tente novamente.');
+        return;
+    }
+    return deleteChecklist(index);
 }
 
 // ===== OUVINTES DE EVENTOS =====
