@@ -408,48 +408,13 @@ function clearAllPhotoPreviews() {
     }
 }
 
-function showChecklistAuth(message = '') {
-    document.getElementById('authScreen')?.classList.remove('hidden');
-    document.getElementById('mainShell')?.classList.add('hidden');
-    document.getElementById('signOutBtn')?.classList.add('hidden');
-    const authAlert = document.getElementById('authAlert');
-    if (authAlert) {
-        authAlert.textContent = message;
-        authAlert.classList.toggle('hidden', !message);
-    }
-}
-
 function showChecklistMain() {
-    document.getElementById('authScreen')?.classList.add('hidden');
     document.getElementById('mainShell')?.classList.remove('hidden');
-    document.getElementById('signOutBtn')?.classList.remove('hidden');
 
     const driverCanvas = document.getElementById('driverSignatureCanvas');
     const checkerCanvas = document.getElementById('checkerSignatureCanvas');
     if (driverCanvas) resizeSignatureCanvas(driverCanvas);
     if (checkerCanvas) resizeSignatureCanvas(checkerCanvas);
-}
-
-async function handleChecklistLogin() {
-    const email = document.getElementById('loginEmail')?.value.trim();
-    const password = document.getElementById('loginPassword')?.value;
-
-    if (!email || !password) {
-        showChecklistAuth('Preencha email e senha para entrar.');
-        return;
-    }
-
-    if (!window.firebaseAuth || !window.firebaseSignInWithEmailAndPassword) {
-        showChecklistAuth('Autenticação não inicializada. Atualize a página.');
-        return;
-    }
-
-    try {
-        await window.firebaseSignInWithEmailAndPassword(window.firebaseAuth, email, password);
-    } catch (err) {
-        console.error('Erro de login:', err);
-        showChecklistAuth('Credenciais inválidas ou erro de conexão.');
-    }
 }
 
 async function uploadChecklistPhotos(checklistId, photos) {
@@ -496,24 +461,7 @@ initSignatureCanvas('driverSignatureCanvas');
 initSignatureCanvas('checkerSignatureCanvas');
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('loginBtn')?.addEventListener('click', handleChecklistLogin);
-    document.getElementById('signOutBtn')?.addEventListener('click', async () => {
-        if (window.firebaseAuth && window.firebaseSignOut) {
-            await window.firebaseSignOut(window.firebaseAuth);
-        }
-    });
-
-    if (window.firebaseAuth && window.firebaseOnAuthStateChanged) {
-        window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
-            if (user) {
-                showChecklistMain();
-            } else {
-                showChecklistAuth();
-            }
-        });
-    } else {
-        showChecklistMain();
-    }
+    showChecklistMain();
 });
 
 // ===== SALVAMENTO DO CHECKLIST =====
@@ -611,7 +559,7 @@ async function saveChecklist(event) {
         );
 
         const photos = photoDataUrls.filter(Boolean);
-        if (photos.length && window.firebaseAuth?.currentUser) {
+        if (photos.length) {
             const photoUrls = await uploadChecklistPhotos(docRef.id, photos);
             if (photoUrls.length) {
                 await window.firebaseUpdateDoc(docRef, { photos: photoUrls });

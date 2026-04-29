@@ -35,34 +35,14 @@
             <!-- Seção direita: Relógio ao vivo -->
             <div class="navbar-right">
                 <div id="liveClock" class="navbar-clock">00:00:00</div> <!-- Relógio atualizado dinamicamente -->
-                <button id="signOutBtn" class="btn-secondary hidden ml-3">Sair</button>
             </div>
         </div>
     </header>
 
-    <div id="authScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div class="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
-            <div class="mb-6 text-center">
-                <h1 class="text-2xl font-bold">Acesso para envio</h1>
-                <p class="mt-2 text-sm text-slate-600">Faça login para enviar checklists e carregar fotos com segurança.</p>
-            </div>
-            <div id="authAlert" class="mb-4 hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
-            <label class="mb-4 block text-sm font-semibold uppercase tracking-[0.15em] text-slate-700">
-                Email
-                <input id="loginEmail" type="email" class="input-field mt-2" placeholder="admin@empresa.com" required>
-            </label>
-            <label class="mb-6 block text-sm font-semibold uppercase tracking-[0.15em] text-slate-700">
-                Senha
-                <input id="loginPassword" type="password" class="input-field mt-2" placeholder="••••••••" required>
-            </label>
-            <button id="loginBtn" type="button" class="btn-primary w-full">Entrar</button>
-        </div>
-    </div>
-
 
     <!-- ===== CONTEÚDO PRINCIPAL ===== -->
     <!-- Container principal com largura máxima e padding responsivo -->
-    <div id="mainShell" class="hidden page-shell px-4 md:px-8">
+    <div id="mainShell" class="page-shell px-4 md:px-8">
         <div class="max-w-[1400px] mx-auto">
             <!-- ===== FORMULÁRIO PRINCIPAL ===== -->
             <!-- Formulário que contém todas as seções do checklist -->
