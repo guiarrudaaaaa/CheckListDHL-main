@@ -25,11 +25,31 @@
                     <span>Sincronizado</span>
                 </div>
                 <div class="navbar-clock" id="liveTime">00:00:00</div>
+                <button id="signOutBtn" class="btn-secondary hidden">Sair</button>
             </div>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-6 py-8">
+    <div id="authScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div class="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+            <div class="mb-6 text-center">
+                <h1 class="text-2xl font-bold">Acesso Administrativo</h1>
+                <p class="mt-2 text-sm text-slate-600">Faça login para acessar o painel seguro.</p>
+            </div>
+            <div id="authAlert" class="mb-4 hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+            <label class="mb-4 block text-sm font-semibold uppercase tracking-[0.15em] text-slate-700">
+                Email
+                <input id="loginEmail" type="email" class="input-field mt-2" placeholder="admin@empresa.com" required>
+            </label>
+            <label class="mb-6 block text-sm font-semibold uppercase tracking-[0.15em] text-slate-700">
+                Senha
+                <input id="loginPassword" type="password" class="input-field mt-2" placeholder="••••••••" required>
+            </label>
+            <button id="loginBtn" type="button" class="btn-primary w-full">Entrar</button>
+        </div>
+    </div>
+
+    <main id="adminMain" class="hidden max-w-7xl mx-auto px-6 py-8">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div class="metric-card red">
                 <p class="metric-label">📋 Total de Registros</p>
@@ -76,6 +96,7 @@
     </main>
 
     <script type="module" src="firebase-init.js"></script>
+    <script src="shared.js"></script>
     <script src="admin.js"></script>
 </body>
 </html>

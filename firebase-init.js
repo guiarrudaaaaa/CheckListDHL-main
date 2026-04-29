@@ -1,15 +1,20 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 import {
   getFirestore,
   collection,
   addDoc,
+  updateDoc,
   getDocs,
   query,
   orderBy,
   doc,
   deleteDoc,
-  serverTimestamp
+  serverTimestamp,
+  limit,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // Configuração do Firebase para o projeto Check List DHL
@@ -34,9 +39,21 @@ window.firebaseAnalytics = analytics;
 window.firebaseDb = db;
 window.firebaseCollection = collection;
 window.firebaseAddDoc = addDoc;
+window.firebaseUpdateDoc = updateDoc;
 window.firebaseGetDocs = getDocs;
 window.firebaseQuery = query;
 window.firebaseOrderBy = orderBy;
+window.firebaseLimit = limit;
 window.firebaseDoc = doc;
 window.firebaseDeleteDoc = deleteDoc;
 window.firebaseServerTimestamp = serverTimestamp;
+window.firebaseOnSnapshot = onSnapshot;
+window.firebaseAuth = getAuth(app);
+window.firebaseSignInWithEmailAndPassword = signInWithEmailAndPassword;
+window.firebaseSignOut = signOut;
+window.firebaseOnAuthStateChanged = onAuthStateChanged;
+window.firebaseStorage = getStorage(app);
+window.firebaseStorageRef = storageRef;
+window.firebaseUploadString = uploadString;
+window.firebaseGetDownloadURL = getDownloadURL;
+window.firebaseDeleteObject = deleteObject;

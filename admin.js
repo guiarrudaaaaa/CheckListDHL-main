@@ -1,23 +1,9 @@
 // ===== CONFIGURAÇÃO DO RELÓGIO AO VIVO =====
-// Atualiza o relógio no cabeçalho a cada segundo com formato brasileiro
-function updateClock() {
-    // Obtém a hora atual
-    const now = new Date();
-    // Formata a hora em português brasileiro (HH:MM:SS)
-    const time = now.toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-    // Atualiza o elemento HTML com o horário
-    document.getElementById('liveTime').textContent = time;
-}
-// Inicia o relógio e atualiza a cada 1000ms (1 segundo)
-setInterval(updateClock, 1000);
-updateClock(); // Chama imediatamente para evitar delay inicial
+setInterval(() => updateClock('liveTime'), 1000);
+updateClock('liveTime');
 
-async function carregarRelatorio() {
-    if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseGetDocs || !window.firebaseQuery || !window.firebaseOrderBy) {
+async function loadChecklists() {
+    if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseGetDocs || !window.firebaseQuery || !window.firebaseOrderBy || !window.firebaseLimit) {
         console.error('Firebase não está inicializado no painel admin.');
         return;
     }
@@ -27,8 +13,8 @@ async function carregarRelatorio() {
         const checklistsRef = window.firebaseCollection(window.firebaseDb, 'checklists');
         const q = window.firebaseQuery(
             checklistsRef,
-            window.firebaseOrderBy('createdAt', 'desc')
-            // limit(100) // Descomente se quiser limitar ainda mais
+            window.firebaseOrderBy('createdAt', 'desc'),
+            window.firebaseLimit(100)
         );
         const snapshot = await window.firebaseGetDocs(q);
 
@@ -42,54 +28,56 @@ async function carregarRelatorio() {
             };
         });
 
-        // 🔥 OTIMIZAÇÃO: Só atualiza métricas se houver dados novos
-        if (allChecklists.length > 0) {
-            updateMetrics();
-            renderTable();
-        }
+        allChecklists = validateChecklistData(allChecklists);
 
-        const lista = document.getElementById('lista-nomes');
-        if (lista) {
-            lista.innerHTML = '';
-            // 🔥 OTIMIZAÇÃO: Limita lista a 20 entradas recentes
-            allChecklists.slice(0, 20).forEach(item => {
-                const li = document.createElement('li');
-                li.className = 'checkin-item';
-                li.innerHTML = `
-                    <div class="checkin-item-top">
-                        <span class="checkin-item-type">${item.operationType === 'IN' ? '📥 INBOUND' : '📤 OUTBOUND'}</span>
-                        <span class="checkin-item-time">${formatValue(item.checkinTime)}</span>
-                    </div>
-                    <div class="checkin-item-body">
-                        <strong>${formatValue(item.driverName)}</strong>
-                        <span>${formatValue(item.dtNumber)}</span>
-                        <span>${formatValue(item.placaCavalo)}</span>
-                    </div>
-                `;
-                lista.appendChild(li);
-            });
-        }
+        // Atualiza métricas e tabela mesmo que não existam registros
+        updateMetrics();
+        renderTable();
     } catch (err) {
         console.error('Erro ao carregar relatório Firebase:', err);
     }
 }
 
-// ===== SEGURANÇA E SANITIZAÇÃO =====
-// Função para sanitizar entrada de texto (remove tags HTML e caracteres perigosos)
-function sanitizeText(input) {
-    if (typeof input !== 'string') return '';
-    return input.replace(/[<>'"&]/g, '').trim();
+function subscribeChecklists() {
+    if (checklistsUnsubscribe) {
+        checklistsUnsubscribe();
+        checklistsUnsubscribe = null;
+    }
+
+    if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseQuery || !window.firebaseOrderBy || !window.firebaseLimit || !window.firebaseOnSnapshot) {
+        loadChecklists();
+        return;
+    }
+
+    const checklistsRef = window.firebaseCollection(window.firebaseDb, 'checklists');
+    const q = window.firebaseQuery(
+        checklistsRef,
+        window.firebaseOrderBy('createdAt', 'desc'),
+        window.firebaseLimit(100)
+    );
+
+    checklistsUnsubscribe = window.firebaseOnSnapshot(q, (snapshot) => {
+        allChecklists = snapshot.docs.map(docSnapshot => {
+            const data = docSnapshot.data();
+            const checkinTime = data.checkinTime || (data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleString('pt-BR') : '');
+            return {
+                id: docSnapshot.id,
+                ...data,
+                checkinTime
+            };
+        });
+
+        allChecklists = validateChecklistData(allChecklists);
+        updateMetrics();
+        renderTable();
+    }, (err) => {
+        console.error('Erro no listener de checklists:', err);
+        loadChecklists();
+    });
 }
 
-// Função para sanitizar HTML gerado dinamicamente
-function safeSetInnerHTML(element, html) {
-    if (!element || typeof html !== 'string') return;
-    // Remove qualquer script ou event handler
-    const sanitized = html.replace(/<script[^>]*>.*?<\/script>/gi, '')
-                         .replace(/on\w+="[^"]*"/gi, '')
-                         .replace(/javascript:/gi, '');
-    element.innerHTML = sanitized;
-}
+// ===== SEGURANÇA E SANITIZAÇÃO =====
+// As funções sanitizeText e safeSetInnerHTML são importadas de shared.js
 
 // Função para validar dados carregados do Firestore
 function validateChecklistData(data) {
@@ -112,12 +100,7 @@ function validateChecklistData(data) {
 // Variáveis globais para controlar filtros e armazenar checklists
 let currentFilter = 'todos'; // Filtro atual aplicado ('todos', 'inbound', 'outbound')
 let allChecklists = []; // Array que armazena todos os checklists carregados
-
-// ===== CARREGAMENTO DE CHECKLISTS =====
-// Carrega os checklists do Firebase
-async function loadChecklists() {
-    await carregarRelatorio();
-}
+let checklistsUnsubscribe = null; // Função para cancelar a escuta em tempo real
 
 // ===== ATUALIZAÇÃO DE MÉTRICAS =====
 // Calcula e atualiza os valores exibidos nos cards de métricas
@@ -126,8 +109,6 @@ function updateMetrics() {
     const inCount = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'IN').length;
     // Conta operações outbound (OUT)
     const outCount = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'OUT').length;
-    // Conta docas únicas em uso (remove duplicatas)
-    const totalDoca = new Set(allChecklists.filter(c => c.doca && c.doca !== '').map(c => String(c.doca).toUpperCase())).size;
     // Total de pallets usados em todos os checklists
     const totalPbr = allChecklists.reduce((sum, item) => sum + (parseInt(item.totalPbr || item.totalPBR || 0, 10) || 0), 0);
     // Total de registros
@@ -135,13 +116,11 @@ function updateMetrics() {
 
     // Atualiza os elementos HTML dos cards
     const totalRegistrosEl = document.getElementById('totalRegistros');
-    const totalDocasEl = document.getElementById('totalDocas');
     const inboundCountEl = document.getElementById('inboundCount');
     const outboundCountEl = document.getElementById('outboundCount');
     const totalPbrCountEl = document.getElementById('totalPbrCount');
 
     if (totalRegistrosEl) totalRegistrosEl.textContent = totalRegistros;
-    if (totalDocasEl) totalDocasEl.textContent = totalDoca;
     if (inboundCountEl) inboundCountEl.textContent = inCount;
     if (outboundCountEl) outboundCountEl.textContent = outCount;
     if (totalPbrCountEl) totalPbrCountEl.textContent = totalPbr;
@@ -153,6 +132,69 @@ function updateMetrics() {
     if (todosNumberEl) todosNumberEl.textContent = `(${totalRegistros})`;
     if (inboundNumberEl) inboundNumberEl.textContent = `(${inCount})`;
     if (outboundNumberEl) outboundNumberEl.textContent = `(${outCount})`;
+}
+
+function showAuthError(message) {
+    const alert = document.getElementById('authAlert');
+    if (!alert) return;
+    if (!message) {
+        alert.classList.add('hidden');
+        alert.textContent = '';
+        return;
+    }
+    alert.textContent = message;
+    alert.classList.remove('hidden');
+}
+
+function showAuthenticatedAdmin() {
+    document.getElementById('authScreen')?.classList.add('hidden');
+    document.getElementById('adminMain')?.classList.remove('hidden');
+    document.getElementById('signOutBtn')?.classList.remove('hidden');
+    subscribeChecklists();
+}
+
+function showUnauthenticatedAdmin() {
+    if (checklistsUnsubscribe) {
+        checklistsUnsubscribe();
+        checklistsUnsubscribe = null;
+    }
+    document.getElementById('authScreen')?.classList.remove('hidden');
+    document.getElementById('adminMain')?.classList.add('hidden');
+    document.getElementById('signOutBtn')?.classList.add('hidden');
+    showAuthError('');
+}
+
+async function handleLogin() {
+    const email = document.getElementById('loginEmail')?.value.trim();
+    const password = document.getElementById('loginPassword')?.value;
+
+    if (!email || !password) {
+        showAuthError('Preencha email e senha para entrar.');
+        return;
+    }
+
+    if (!window.firebaseAuth || !window.firebaseSignInWithEmailAndPassword) {
+        showAuthError('Autenticação não inicializada. Atualize a página.');
+        return;
+    }
+
+    showAuthError('');
+    try {
+        await window.firebaseSignInWithEmailAndPassword(window.firebaseAuth, email, password);
+    } catch (err) {
+        console.error('Erro de login:', err);
+        showAuthError('Credenciais inválidas ou erro de conexão.');
+    }
+}
+
+async function handleSignOut() {
+    if (!window.firebaseAuth || !window.firebaseSignOut) return;
+    await window.firebaseSignOut(window.firebaseAuth);
+}
+
+function csvEscape(value) {
+    const text = value === undefined || value === null ? '' : String(value);
+    return `"${text.replace(/"/g, '""')}"`;
 }
 
 // ===== FUNÇÃO UTILITÁRIA =====
@@ -234,11 +276,12 @@ function renderTable() {
         // Cria elemento de linha
         const row = document.createElement('tr');
         // Formata o tipo de operação
-        const opType = formatValue(checklist.operationType);
+        const opTypeRaw = formatValue(checklist.operationType);
+        const opType = escapeHtml(opTypeRaw);
         // Define emoji baseado no tipo
-        const opEmoji = opType === 'IN' ? '📥' : (opType === 'OUT' ? '📤' : '❓');
+        const opEmoji = opTypeRaw === 'IN' ? '📥' : (opTypeRaw === 'OUT' ? '📤' : '❓');
         // Define classe do badge
-        const badgeClass = opType === 'IN' ? 'badge-in' : (opType === 'OUT' ? 'badge-out' : '');
+        const badgeClass = opTypeRaw === 'IN' ? 'badge-in' : (opTypeRaw === 'OUT' ? 'badge-out' : '');
 
         // Define o HTML da linha com todas as colunas
         row.innerHTML = `
@@ -248,17 +291,17 @@ function renderTable() {
                     <span class="badge ${badgeClass}">${opType}</span> <!-- Badge com tipo -->
                 </div>
             </td>
-            <td class="text-bold">${formatValue(checklist.driverName)}</td> <!-- Motorista -->
-            <td class="text-bold">${formatValue(checklist.placaCavalo)}</td> <!-- Cavalo -->
-            <td class="text-bold">${formatValue(checklist.placaCarreta1)}</td> <!-- Carreta -->
-            <td class="text-center"><span class="badge badge-doca">${formatValue(checklist.doca)}</span></td> <!-- Doca -->
-            <td class="text-bold">${formatValue(checklist.dtNumber)}</td> <!-- DT -->
-            <td class="text-bold">⏰ ${formatValue(checklist.checkinTime)}</td> <!-- Check-in -->
-            <td class="text-bold">${formatValue(checklist.transportadora)}</td> <!-- Transportadora -->
-            <td class="text-bold text-center" style="color: #D40511;">${checklist.totalFardos || 0}</td> <!-- Total fardos -->
-            <td class="text-bold text-center" style="color: #D40511;">${checklist.avariados || 0}</td> <!-- Avariados -->
-            <td class="text-bold text-center" style="color: #D40511;">${checklist.scrap || 0}</td> <!-- Scrap -->
-            <td class="text-bold text-center" style="color: #D40511;">${checklist.avariasInternas || 0}</td> <!-- Internas -->
+            <td class="text-bold">${escapeHtml(formatValue(checklist.driverName))}</td> <!-- Motorista -->
+            <td class="text-bold">${escapeHtml(formatValue(checklist.placaCavalo))}</td> <!-- Cavalo -->
+            <td class="text-bold">${escapeHtml(formatValue(checklist.placaCarreta1))}</td> <!-- Carreta -->
+            <td class="text-center"><span class="badge badge-doca">${escapeHtml(formatValue(checklist.doca))}</span></td> <!-- Doca -->
+            <td class="text-bold">${escapeHtml(formatValue(checklist.dtNumber))}</td> <!-- DT -->
+            <td class="text-bold">⏰ ${escapeHtml(formatValue(checklist.checkinTime))}</td> <!-- Check-in -->
+            <td class="text-bold">${escapeHtml(formatValue(checklist.transportadora))}</td> <!-- Transportadora -->
+            <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.totalFardos || 0)}</td> <!-- Total fardos -->
+            <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.avariados || 0)}</td> <!-- Avariados -->
+            <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.scrap || 0)}</td> <!-- Scrap -->
+            <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.avariasInternas || 0)}</td> <!-- Internas -->
             <td class="text-center">
                 <button onclick="viewChecklistDetails(${globalIndex})" class="action-btn edit-btn" title="Visualizar Detalhes">👁️</button> <!-- Botão visualizar -->
                 <button onclick="deleteChecklist(${globalIndex})" class="action-btn delete-btn" title="Excluir">🗑️</button> <!-- Botão excluir -->
@@ -304,14 +347,14 @@ function viewChecklistDetails(index) {
                     <h3 class="font-bold text-lg mb-3">🏷️ Identificação</h3>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                         <div><strong>Tipo:</strong> ${checklist.operationType === 'IN' ? '📥 Inbound' : '📤 Outbound'}</div>
-                        <div><strong>DT:</strong> ${formatValue(checklist.dtNumber)}</div>
-                        <div><strong>Motorista:</strong> ${formatValue(checklist.driverName)}</div>
-                        <div><strong>Cavalo:</strong> ${formatValue(checklist.placaCavalo)}</div>
-                        <div><strong>Carreta:</strong> ${formatValue(checklist.placaCarreta1)}</div>
-                        <div><strong>Doca:</strong> ${formatValue(checklist.doca)}</div>
-                        <div><strong>Transportadora:</strong> ${formatValue(checklist.transportadora)}</div>
-                        <div><strong>Check-in:</strong> ${formatValue(checklist.checkinTime)}</div>
-                        <div><strong>Origem:</strong> ${formatValue(checklist.origem)}</div>
+                        <div><strong>DT:</strong> ${escapeHtml(formatValue(checklist.dtNumber))}</div>
+                        <div><strong>Motorista:</strong> ${escapeHtml(formatValue(checklist.driverName))}</div>
+                        <div><strong>Cavalo:</strong> ${escapeHtml(formatValue(checklist.placaCavalo))}</div>
+                        <div><strong>Carreta:</strong> ${escapeHtml(formatValue(checklist.placaCarreta1))}</div>
+                        <div><strong>Doca:</strong> ${escapeHtml(formatValue(checklist.doca))}</div>
+                        <div><strong>Transportadora:</strong> ${escapeHtml(formatValue(checklist.transportadora))}</div>
+                        <div><strong>Check-in:</strong> ${escapeHtml(formatValue(checklist.checkinTime))}</div>
+                        <div><strong>Origem:</strong> ${escapeHtml(formatValue(checklist.origem))}</div>
                     </div>
                 </div>
 
@@ -321,8 +364,8 @@ function viewChecklistDetails(index) {
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
                         ${Object.entries(checklist.hygiene || {}).map(([key, value]) => 
                             `<div class="flex justify-between items-center p-2 bg-white rounded border">
-                                <span class="text-sm">${key}</span>
-                                <span class="font-bold ${value === 'C' ? 'text-green-600' : 'text-red-600'}">${value}</span>
+                                <span class="text-sm">${escapeHtml(key)}</span>
+                                <span class="font-bold ${value === 'C' ? 'text-green-600' : 'text-red-600'}">${escapeHtml(value)}</span>
                             </div>`
                         ).join('')}
                     </div>
@@ -331,7 +374,7 @@ function viewChecklistDetails(index) {
                 ${hygieneNote ? `
                 <div class="bg-purple-50 p-4 rounded-lg">
                     <h3 class="font-bold text-lg mb-3">📝 Observação de Higiene e Estrutura</h3>
-                    <p class="text-gray-700">${hygieneNote}</p>
+                    <p class="text-gray-700">${escapeHtml(hygieneNote)}</p>
                 </div>
                 ` : ''}
 
@@ -356,15 +399,15 @@ function viewChecklistDetails(index) {
                             <tbody>
                                 ${(checklist.items || []).map(item => `
                                     <tr>
-                                        <td class="border border-gray-300 p-2">${item.code || ''}</td>
-                                        <td class="border border-gray-300 p-2 text-center">${item.previsto || 0}</td>
-                                        <td class="border border-gray-300 p-2 text-center">${item.realizado || 0}</td>
-                                        <td class="border border-gray-300 p-2 text-center text-red-600">${item.faltas || 0}</td>
-                                        <td class="border border-gray-300 p-2 text-center text-green-600">${item.sobras || 0}</td>
-                                        <td class="border border-gray-300 p-2 text-center">${item.avarias || 0}</td>
-                                        <td class="border border-gray-300 p-2 text-center">${item.scrap || 0}</td>
-                                        <td class="border border-gray-300 p-2 text-center">${item.avariasInternas || 0}</td>
-                                        <td class="border border-gray-300 p-2 text-center font-bold">${item.bons || 0}</td>
+                                        <td class="border border-gray-300 p-2">${escapeHtml(item.code || '')}</td>
+                                        <td class="border border-gray-300 p-2 text-center">${escapeHtml(item.previsto || 0)}</td>
+                                        <td class="border border-gray-300 p-2 text-center">${escapeHtml(item.realizado || 0)}</td>
+                                        <td class="border border-gray-300 p-2 text-center text-red-600">${escapeHtml(item.faltas || 0)}</td>
+                                        <td class="border border-gray-300 p-2 text-center text-green-600">${escapeHtml(item.sobras || 0)}</td>
+                                        <td class="border border-gray-300 p-2 text-center">${escapeHtml(item.avarias || 0)}</td>
+                                        <td class="border border-gray-300 p-2 text-center">${escapeHtml(item.scrap || 0)}</td>
+                                        <td class="border border-gray-300 p-2 text-center">${escapeHtml(item.avariasInternas || 0)}</td>
+                                        <td class="border border-gray-300 p-2 text-center font-bold">${escapeHtml(item.bons || 0)}</td>
                                     </tr>
                                 `).join('')}
                             </tbody>
@@ -393,7 +436,20 @@ function viewChecklistDetails(index) {
                 ${checklist.observations ? `
                 <div class="bg-purple-50 p-4 rounded-lg">
                     <h3 class="font-bold text-lg mb-3">📝 Observações</h3>
-                    <p class="text-gray-700">${checklist.observations}</p>
+                    <p class="text-gray-700">${escapeHtml(checklist.observations)}</p>
+                </div>
+                ` : ''}
+
+                ${Array.isArray(checklist.photos) && checklist.photos.length > 0 ? `
+                <div class="bg-slate-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-lg mb-3">📷 Fotos do Checklist</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${checklist.photos.map((photo, photoIndex) => `
+                            <div class="rounded-3xl overflow-hidden border border-gray-200 shadow-sm bg-white">
+                                <img src="${escapeHtml(photo)}" alt="Foto ${photoIndex + 1}" class="w-full h-44 object-cover">
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
                 ` : ''}
 
@@ -415,9 +471,9 @@ function viewChecklistDetails(index) {
                                 <tbody>
                                     ${checklist.palletRows.map(row => `
                                         <tr>
-                                            <td class="border border-gray-300 p-2">${row.code || '—'}</td>
-                                            <td class="border border-gray-300 p-2 text-right">${row.count || 0}</td>
-                                            <td class="border border-gray-300 p-2 text-right">${row.per || 0}</td>
+                                            <td class="border border-gray-300 p-2">${escapeHtml(row.code || '—')}</td>
+                                            <td class="border border-gray-300 p-2 text-right">${escapeHtml(row.count || 0)}</td>
+                                            <td class="border border-gray-300 p-2 text-right">${escapeHtml(row.per || 0)}</td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
@@ -480,12 +536,36 @@ async function deleteChecklist(index) {
     }
 
     try {
+        if (window.firebaseDeleteObject) {
+            await deleteChecklistFiles(checklist.id);
+        }
         await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, 'checklists', checklist.id));
-        await loadChecklists();
+        if (!window.firebaseOnSnapshot) {
+            await loadChecklists();
+        }
     } catch (err) {
         console.error('Erro ao excluir registro do Firebase:', err);
         alert('Erro ao excluir o registro. Tente novamente.');
     }
+}
+
+async function deleteChecklistFiles(checklistId) {
+    if (!window.firebaseStorage || !window.firebaseStorageRef || !window.firebaseDeleteObject) return;
+
+    const deletePromises = [];
+    for (let i = 1; i <= 6; i += 1) {
+        const storagePath = `checklists/${checklistId}/photo-${i}.jpg`;
+        const fileRef = window.firebaseStorageRef(window.firebaseStorage, storagePath);
+        deletePromises.push(
+            window.firebaseDeleteObject(fileRef).catch(err => {
+                if (err && err.code !== 'storage/object-not-found') {
+                    console.warn(`Falha ao excluir arquivo ${storagePath}:`, err);
+                }
+            })
+        );
+    }
+
+    await Promise.all(deletePromises);
 }
 
 // ===== OUVINTES DE EVENTOS =====
@@ -535,7 +615,7 @@ document.getElementById('exportBtn').addEventListener('click', () => {
         const avar = c.avariados || 0;
         const scrap = c.scrap || 0;
 
-        csv += `${dt},${motorista},${cavalo},${carreta},${doca},${checkin},${transp},${fardos},${avar},${scrap}\n`;
+        csv += [dt, motorista, cavalo, carreta, doca, checkin, transp, fardos, avar, scrap].map(csvEscape).join(',') + '\n';
     });
 
     // Cria blob com o conteúdo CSV
@@ -551,10 +631,19 @@ document.getElementById('exportBtn').addEventListener('click', () => {
 });
 
 // ===== INICIALIZAÇÃO =====
-// Carrega dados iniciais ao carregar a página
 document.addEventListener('DOMContentLoaded', () => {
-    loadChecklists();
-    // Configura atualização automática do dashboard e do relatório
-    setInterval(loadChecklists, 3000);
-    setInterval(carregarRelatorio, 10000);
+    document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
+    document.getElementById('signOutBtn')?.addEventListener('click', handleSignOut);
+
+    if (window.firebaseAuth && window.firebaseOnAuthStateChanged) {
+        window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
+            if (user) {
+                showAuthenticatedAdmin();
+            } else {
+                showUnauthenticatedAdmin();
+            }
+        });
+    } else {
+        showAuthenticatedAdmin();
+    }
 });

@@ -1,12 +1,6 @@
 // ===== CONFIGURAÇÃO DO RELÓGIO AO VIVO =====
-// Atualiza o relógio no cabeçalho a cada segundo
-function updateClock() {
-    // Obtém a hora atual formatada em português brasileiro
-    document.getElementById('liveClock').innerText = new Date().toLocaleTimeString('pt-BR');
-}
-// Inicia o relógio e atualiza a cada 1000ms (1 segundo)
-setInterval(updateClock, 1000);
-updateClock(); // Chama imediatamente para evitar delay inicial
+setInterval(() => updateClock('liveClock'), 1000);
+updateClock('liveClock');
 
 function resizeSignatureCanvas(canvas) {
     if (!canvas) return;
@@ -104,12 +98,6 @@ function initSignatureCanvas(canvasId) {
 
 
 // ===== SEGURANÇA E SANITIZAÇÃO =====
-// Função para sanitizar entrada de texto (remove tags HTML e caracteres perigosos)
-function sanitizeText(input) {
-    if (typeof input !== 'string') return '';
-    return input.replace(/[<>'"&]/g, '').trim();
-}
-
 // Função para validar entrada numérica
 function sanitizeNumber(input) {
     if (typeof input !== 'string') return '0';
@@ -155,16 +143,6 @@ function clearFormAlert() {
     if (!alertBox) return;
     alertBox.className = 'form-alert hidden';
     alertBox.textContent = '';
-}
-
-// Função para prevenir XSS em elementos dinâmicos
-function safeSetInnerHTML(element, html) {
-    if (!element || typeof html !== 'string') return;
-    // Remove qualquer script ou event handler
-    const sanitized = html.replace(/<script[^>]*>.*?<\/script>/gi, '')
-                         .replace(/on\w+="[^"]*"/gi, '')
-                         .replace(/javascript:/gi, '');
-    element.innerHTML = sanitized;
 }
 
 // ===== GERAÇÃO DINÂMICA DO GRID DE HIGIENE =====
@@ -234,31 +212,6 @@ function addItemRow() {
     if (firstInput) firstInput.focus();
 }
 
-function addPalletRow(bodyId) {
-    const tbody = document.getElementById(bodyId);
-    if (!tbody) return;
-
-    const tr = document.createElement('tr');
-    tr.className = 'border-b border-muted';
-    tr.innerHTML = `
-        <td class="py-3 pl-4"><input type="number" class="input-field val-pallet-code text-right" placeholder="CÓD" min="0" step="1" oninput="numericOnly(this)"></td>
-        <td class="py-3 pr-4"><input type="number" class="input-field val-pallet-count text-right" placeholder="Fardos Totais" min="0" step="1" oninput="numericOnly(this)"></td>
-        <td class="py-3 pr-4"><input type="number" class="input-field val-pallet-per text-right" placeholder="Fardos / Pallet" min="0" step="1" oninput="numericOnly(this)"></td>
-        <td class="text-center"><button type="button" onclick="removePalletRow(this)" class="text-slate-300 hover:text-red-500 font-bold">✕</button></td>
-    `;
-    tbody.appendChild(tr);
-}
-
-function removePalletRow(button) {
-    const row = button?.closest('tr');
-    if (!row) return;
-    const tbody = row.parentElement;
-    row.remove();
-    if (tbody.children.length === 0) {
-        addPalletRow(tbody.id);
-    }
-}
-
 // ===== FUNÇÕES DE AUDITORIA =====
 // Função para calcular faltas, sobras e totais para uma linha específica
 function audit(el) {
@@ -301,19 +254,13 @@ function audit(el) {
 
 // Função para calcular os totais gerais de todas as linhas
 function auditAll() {
-    // Soma todas as faltas
-    let f = 0;
-    document.querySelectorAll('.res-falta').forEach(i => f += parseFloat(i.value) || 0);
-    // Soma todas as sobras
-    let s = 0;
-    document.querySelectorAll('.res-sobra').forEach(i => s += parseFloat(i.value) || 0);
-    // Soma todos os valores realizados para entrada
-    let b = 0;
-    document.querySelectorAll('.val-realizado').forEach(i => b += parseFloat(i.value) || 0);
-    // Atualiza os elementos HTML com os totais
-    document.getElementById('totalFaltas').innerText = f;
-    document.getElementById('totalSobra').innerText = s;
-    document.getElementById('totalBonsGeral').innerText = b;
+    const totalFaltas = Array.from(document.querySelectorAll('.res-falta')).reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
+    const totalSobra = Array.from(document.querySelectorAll('.res-sobra')).reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
+    const totalBons = Array.from(document.querySelectorAll('.res-bons')).reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
+
+    document.getElementById('totalFaltas').innerText = totalFaltas;
+    document.getElementById('totalSobra').innerText = totalSobra;
+    document.getElementById('totalBonsGeral').innerText = totalBons;
 }
 
 function numericOnly(el) {
@@ -369,6 +316,178 @@ function validateChecklist() {
     return true;
 }
 
+const MAX_PHOTO_FILE_SIZE_BYTES = 4000000; // 4 MB
+const MAX_PHOTO_DATAURL_BYTES = 1200000; // 1.2 MB
+let photoDataUrls = Array(6).fill('');
+
+function resizeImageFileToDataUrl(file, maxWidth = 1000, quality = 0.65) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                const ratio = Math.min(1, maxWidth / img.width);
+                const width = Math.max(1, Math.floor(img.width * ratio));
+                const height = Math.max(1, Math.floor(img.height * ratio));
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                resolve(dataUrl);
+            };
+            img.onerror = reject;
+            img.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+async function handlePhotoChange(event, index) {
+    const input = event.target;
+    const file = input?.files?.[0];
+    const preview = document.getElementById(`photoPreview${index}`);
+    const message = document.getElementById('photoUploadMessage');
+
+    if (!preview || !message) return;
+    message.textContent = '';
+
+    if (!file) {
+        clearPhotoPreview(index);
+        return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+        message.textContent = 'Selecione apenas imagens válidas.';
+        input.value = '';
+        clearPhotoPreview(index);
+        return;
+    }
+
+    if (file.size > MAX_PHOTO_FILE_SIZE_BYTES) {
+        message.textContent = 'A foto deve ter até 4 MB. Selecione outra imagem.';
+        input.value = '';
+        clearPhotoPreview(index);
+        return;
+    }
+
+    try {
+        const dataUrl = await resizeImageFileToDataUrl(file);
+        if (dataUrl.length > MAX_PHOTO_DATAURL_BYTES) {
+            message.textContent = 'A imagem está muito grande após a compactação. Tente uma foto com resolução menor.';
+            input.value = '';
+            clearPhotoPreview(index);
+            return;
+        }
+
+        photoDataUrls[index - 1] = dataUrl;
+        preview.innerHTML = `<img src="${dataUrl}" alt="Foto ${index}" class="photo-preview-img">`;
+    } catch (err) {
+        console.error('Erro ao processar foto:', err);
+        message.textContent = 'Não foi possível carregar a imagem. Tente novamente.';
+        input.value = '';
+        clearPhotoPreview(index);
+    }
+}
+
+function clearPhotoPreview(index) {
+    const preview = document.getElementById(`photoPreview${index}`);
+    if (!preview) return;
+    photoDataUrls[index - 1] = '';
+    preview.innerHTML = '<span class="text-xs text-slate-400">Toque para selecionar imagem</span>';
+}
+
+function clearAllPhotoPreviews() {
+    photoDataUrls = Array(6).fill('');
+    for (let i = 1; i <= 6; i += 1) {
+        clearPhotoPreview(i);
+        const input = document.getElementById(`photoInput${i}`);
+        if (input) input.value = '';
+    }
+}
+
+function showChecklistAuth(message = '') {
+    document.getElementById('authScreen')?.classList.remove('hidden');
+    document.getElementById('mainShell')?.classList.add('hidden');
+    document.getElementById('signOutBtn')?.classList.add('hidden');
+    const authAlert = document.getElementById('authAlert');
+    if (authAlert) {
+        authAlert.textContent = message;
+        authAlert.classList.toggle('hidden', !message);
+    }
+}
+
+function showChecklistMain() {
+    document.getElementById('authScreen')?.classList.add('hidden');
+    document.getElementById('mainShell')?.classList.remove('hidden');
+    document.getElementById('signOutBtn')?.classList.remove('hidden');
+
+    const driverCanvas = document.getElementById('driverSignatureCanvas');
+    const checkerCanvas = document.getElementById('checkerSignatureCanvas');
+    if (driverCanvas) resizeSignatureCanvas(driverCanvas);
+    if (checkerCanvas) resizeSignatureCanvas(checkerCanvas);
+}
+
+async function handleChecklistLogin() {
+    const email = document.getElementById('loginEmail')?.value.trim();
+    const password = document.getElementById('loginPassword')?.value;
+
+    if (!email || !password) {
+        showChecklistAuth('Preencha email e senha para entrar.');
+        return;
+    }
+
+    if (!window.firebaseAuth || !window.firebaseSignInWithEmailAndPassword) {
+        showChecklistAuth('Autenticação não inicializada. Atualize a página.');
+        return;
+    }
+
+    try {
+        await window.firebaseSignInWithEmailAndPassword(window.firebaseAuth, email, password);
+    } catch (err) {
+        console.error('Erro de login:', err);
+        showChecklistAuth('Credenciais inválidas ou erro de conexão.');
+    }
+}
+
+async function uploadChecklistPhotos(checklistId, photos) {
+    if (!window.firebaseStorage || !window.firebaseStorageRef || !window.firebaseUploadString || !window.firebaseGetDownloadURL) {
+        return [];
+    }
+
+    const photoUrls = [];
+    for (let i = 0; i < photos.length; i += 1) {
+        const photoDataUrl = photos[i];
+        const path = `checklists/${checklistId}/photo-${i + 1}.jpg`;
+        const fileRef = window.firebaseStorageRef(window.firebaseStorage, path);
+        await window.firebaseUploadString(fileRef, photoDataUrl, 'data_url');
+        const downloadUrl = await window.firebaseGetDownloadURL(fileRef);
+        photoUrls.push(downloadUrl);
+    }
+    return photoUrls;
+}
+
+async function cleanupChecklistFiles(checklistId) {
+    if (!window.firebaseStorage || !window.firebaseStorageRef || !window.firebaseDeleteObject) return;
+
+    const deletePromises = [];
+    for (let i = 1; i <= 6; i += 1) {
+        const storagePath = `checklists/${checklistId}/photo-${i}.jpg`;
+        const fileRef = window.firebaseStorageRef(window.firebaseStorage, storagePath);
+        deletePromises.push(
+            window.firebaseDeleteObject(fileRef).catch(err => {
+                if (err && err.code !== 'storage/object-not-found') {
+                    console.warn(`Falha ao excluir arquivo ${storagePath}:`, err);
+                }
+            })
+        );
+    }
+
+    await Promise.all(deletePromises);
+}
+
 // ===== INICIALIZAÇÃO =====
 // Adiciona uma linha inicial de item ao carregar a página
 addItemRow();
@@ -377,7 +496,24 @@ initSignatureCanvas('driverSignatureCanvas');
 initSignatureCanvas('checkerSignatureCanvas');
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadChecklists();
+    document.getElementById('loginBtn')?.addEventListener('click', handleChecklistLogin);
+    document.getElementById('signOutBtn')?.addEventListener('click', async () => {
+        if (window.firebaseAuth && window.firebaseSignOut) {
+            await window.firebaseSignOut(window.firebaseAuth);
+        }
+    });
+
+    if (window.firebaseAuth && window.firebaseOnAuthStateChanged) {
+        window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
+            if (user) {
+                showChecklistMain();
+            } else {
+                showChecklistAuth();
+            }
+        });
+    } else {
+        showChecklistMain();
+    }
 });
 
 // ===== SALVAMENTO DO CHECKLIST =====
@@ -407,8 +543,6 @@ async function saveChecklist(event) {
         placaCarreta2: document.getElementById('placaCarreta2Input')?.value || '',
         transportadora: document.getElementById('transportadoraInput')?.value || '',
         doca: document.getElementById('docaInput')?.value || '',
-        palletsInbound: '0',
-        palletsOutbound: '0',
         totalPbr: document.getElementById('totalPbrInput')?.value || '0',
         hygieneNote: document.getElementById('hygieneObservation')?.value.trim() || '',
         lacre1: document.getElementById('lacre1Input')?.value || '',
@@ -452,6 +586,8 @@ async function saveChecklist(event) {
     checklistData.scrap = checklistData.items.reduce((sum, item) => sum + item.scrap, 0);
     checklistData.avariasInternas = checklistData.items.reduce((sum, item) => sum + item.avariasInternas, 0);
     checklistData.palletRows = [];
+    checklistData.createdByUid = window.firebaseAuth?.currentUser?.uid || '';
+    checklistData.createdByEmail = window.firebaseAuth?.currentUser?.email || '';
 
     const submitButton = document.querySelector('button[type="submit"]');
     if (submitButton) {
@@ -460,12 +596,13 @@ async function saveChecklist(event) {
         submitButton.innerText = 'Enviando...';
     }
 
+    let docRef = null;
     try {
-        if (!window.firebaseDb || !window.firebaseAddDoc || !window.firebaseCollection) {
+        if (!window.firebaseDb || !window.firebaseAddDoc || !window.firebaseCollection || !window.firebaseUpdateDoc) {
             throw new Error('Firebase não está inicializado.');
         }
 
-        await window.firebaseAddDoc(
+        docRef = await window.firebaseAddDoc(
             window.firebaseCollection(window.firebaseDb, 'checklists'),
             {
                 ...checklistData,
@@ -473,13 +610,32 @@ async function saveChecklist(event) {
             }
         );
 
+        const photos = photoDataUrls.filter(Boolean);
+        if (photos.length && window.firebaseAuth?.currentUser) {
+            const photoUrls = await uploadChecklistPhotos(docRef.id, photos);
+            if (photoUrls.length) {
+                await window.firebaseUpdateDoc(docRef, { photos: photoUrls });
+            }
+        }
+
         showFormAlert('success', 'Checklist enviado para o painel admin com sucesso!');
         document.getElementById('mainChecklist').reset();
+        clearAllPhotoPreviews();
         clearSignature('driverSignatureCanvas');
         clearSignature('checkerSignatureCanvas');
         auditAll();
     } catch (error) {
         console.error('Erro ao enviar dados para o painel:', error);
+        if (docRef && window.firebaseDeleteDoc) {
+            try {
+                if (window.firebaseDeleteObject) {
+                    await cleanupChecklistFiles(docRef.id);
+                }
+                await window.firebaseDeleteDoc(docRef);
+            } catch (cleanupError) {
+                console.warn('Falha ao desfazer o checklist após erro:', cleanupError);
+            }
+        }
         showFormAlert('error', 'Erro ao enviar o relatório para o painel admin. Verifique a conexão e tente novamente.');
     } finally {
         if (submitButton) {
