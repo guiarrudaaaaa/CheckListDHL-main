@@ -170,7 +170,7 @@ criteria.forEach(item => {
 
 // ===== GERENCIAMENTO DE ITENS =====
 // Função para adicionar uma nova linha na tabela de itens
-function addItemRow() {
+function addItemRow({ focus = false } = {}) {
     // Seleciona o corpo da tabela
     const tbody = document.getElementById('itemTableBody');
     // Cria um novo elemento tr (linha)
@@ -209,7 +209,7 @@ function addItemRow() {
     }
 
     const firstInput = tr.querySelector('.val-item-code');
-    if (firstInput) firstInput.focus();
+    if (focus && firstInput) firstInput.focus();
 }
 
 // ===== FUNÇÕES DE AUDITORIA =====
@@ -252,15 +252,19 @@ function audit(el) {
     auditAll();
 }
 
-// Função para calcular os totais gerais de todas as linhas
+// Função para calcular os totais gerais de todas as linhas (otimizada com cache de elementos)
 function auditAll() {
+    const totalFaltasEl = document.getElementById('totalFaltas');
+    const totalSobraEl = document.getElementById('totalSobra');
+    const totalBonsEl = document.getElementById('totalBonsGeral');
+
     const totalFaltas = Array.from(document.querySelectorAll('.res-falta')).reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
     const totalSobra = Array.from(document.querySelectorAll('.res-sobra')).reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
     const totalBons = Array.from(document.querySelectorAll('.res-bons')).reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
 
-    document.getElementById('totalFaltas').innerText = totalFaltas;
-    document.getElementById('totalSobra').innerText = totalSobra;
-    document.getElementById('totalBonsGeral').innerText = totalBons;
+    if (totalFaltasEl) totalFaltasEl.innerText = totalFaltas;
+    if (totalSobraEl) totalSobraEl.innerText = totalSobra;
+    if (totalBonsEl) totalBonsEl.innerText = totalBons;
 }
 
 function numericOnly(el) {
@@ -316,69 +320,8 @@ function validateChecklist() {
     return true;
 }
 
-// Lógica de fotos removida para evitar custos do Storage
-// const MAX_PHOTO_FILE_SIZE_BYTES = 4000000; // 4 MB
-// const MAX_PHOTO_DATAURL_BYTES = 1200000; // 1.2 MB
-// let photoDataUrls = Array(6).fill('');
+// Código relacionado a fotos foi removido para reduzir custos de storage
 
-// function resizeImageFileToDataUrl(file, maxWidth = 1000, quality = 0.65) {
-//     return new Promise((resolve, reject) => {
-//         const reader = new FileReader();
-//         reader.onload = () => {
-//             const img = new Image();
-//             img.onload = () => {
-//                 const ratio = Math.min(1, maxWidth / img.width);
-//                 const width = Math.max(1, Math.floor(img.width * ratio));
-//                 const height = Math.max(1, Math.floor(img.height * ratio));
-//                 const canvas = document.createElement('canvas');
-//                 canvas.width = width;
-//                 canvas.height = height;
-//                 const ctx = canvas.getContext('2d');
-//                 ctx.drawImage(img, 0, 0, width, height);
-//                 const dataUrl = canvas.toDataURL('image/jpeg', quality);
-//                 resolve(dataUrl);
-//             };
-//             img.onerror = reject;
-//             img.src = reader.result;
-//         };
-//         reader.onerror = reject;
-//         reader.readAsDataURL(file);
-//     });
-// }
-
-// async function handlePhotoChange(event, index) {
-//     const input = event.target;
-//     const file = input?.files?.[0];
-//     const preview = document.getElementById(`photoPreview${index}`);
-//     const message = document.getElementById('photoUploadMessage');
-
-//     if (!preview || !message) return;
-//     message.textContent = '';
-
-//     if (!file) {
-//         clearPhotoPreview(index);
-//         return;
-//     }
-
-//     if (!file.type.startsWith('image/')) {
-//         message.textContent = 'Selecione apenas imagens válidas.';
-//         input.value = '';
-//         clearPhotoPreview(index);
-//         return;
-//     }
-
-//     if (file.size > MAX_PHOTO_FILE_SIZE_BYTES) {
-//         message.textContent = 'A foto deve ter até 4 MB. Selecione outra imagem.';
-//         input.value = '';
-//         clearPhotoPreview(index);
-//         return;
-//     }
-
-//     try {
-//         const dataUrl = await resizeImageFileToDataUrl(file);
-//         if (dataUrl.length > MAX_PHOTO_DATAURL_BYTES) {
-//             message.textContent = 'A imagem está muito grande após a compactação. Tente uma foto com resolução menor.';
-//             input.value = '';
 //             clearPhotoPreview(index);
 //             return;
 //         }
@@ -389,16 +332,7 @@ function validateChecklist() {
 //         console.error('Erro ao processar foto:', err);
 //         message.textContent = 'Não foi possível carregar a imagem. Tente novamente.';
 //         input.value = '';
-//         clearPhotoPreview(index);
-//     }
-// }
 
-// function clearPhotoPreview(index) {
-//     const preview = document.getElementById(`photoPreview${index}`);
-//     if (!preview) return;
-//     photoDataUrls[index - 1] = '';
-//     preview.innerHTML = '<span class="text-xs text-slate-400">Toque para selecionar imagem</span>';
-// }
 
 // function clearAllPhotoPreviews() {
 //     photoDataUrls = Array(6).fill('');
@@ -417,42 +351,6 @@ function showChecklistMain() {
     if (driverCanvas) resizeSignatureCanvas(driverCanvas);
     if (checkerCanvas) resizeSignatureCanvas(checkerCanvas);
 }
-
-// async function uploadChecklistPhotos(checklistId, photos) {
-//     if (!window.firebaseStorage || !window.firebaseStorageRef || !window.firebaseUploadString || !window.firebaseGetDownloadURL) {
-//         return [];
-//     }
-
-//     const photoUrls = [];
-//     for (let i = 0; i < photos.length; i += 1) {
-//         const photoDataUrl = photos[i];
-//         const path = `checklists/${checklistId}/photo-${i + 1}.jpg`;
-//         const fileRef = window.firebaseStorageRef(window.firebaseStorage, path);
-//         await window.firebaseUploadString(fileRef, photoDataUrl, 'data_url');
-//         const downloadUrl = await window.firebaseGetDownloadURL(fileRef);
-//         photoUrls.push(downloadUrl);
-//     }
-//     return photoUrls;
-// }
-
-// async function cleanupChecklistFiles(checklistId) {
-//     if (!window.firebaseStorage || !window.firebaseStorageRef || !window.firebaseDeleteObject) return;
-
-//     const deletePromises = [];
-//     for (let i = 1; i <= 6; i += 1) {
-//         const storagePath = `checklists/${checklistId}/photo-${i}.jpg`;
-//         const fileRef = window.firebaseStorageRef(window.firebaseStorage, storagePath);
-//         deletePromises.push(
-//             window.firebaseDeleteObject(fileRef).catch(err => {
-//                 if (err && err.code !== 'storage/object-not-found') {
-//                     console.warn(`Falha ao excluir arquivo ${storagePath}:`, err);
-//                 }
-//             })
-//         );
-//     }
-
-//     await Promise.all(deletePromises);
-// }
 
 // ===== INICIALIZAÇÃO =====
 // Adiciona uma linha inicial de item ao carregar a página
@@ -484,6 +382,7 @@ async function saveChecklist(event) {
 
     const checklistData = {
         operationType: operationType === 'INBOUND' ? 'IN' : 'OUT',
+        nfNumber: document.getElementById('nfNumberInput')?.value || '',
         dtNumber: document.getElementById('dtNumberInput')?.value || '',
         driverName: document.getElementById('driverNameInput')?.value || '',
         origem: document.getElementById('origemInput')?.value || '',
@@ -559,14 +458,6 @@ async function saveChecklist(event) {
             }
         );
 
-        // const photos = photoDataUrls.filter(Boolean);
-        // if (photos.length) {
-        //     const photoUrls = await uploadChecklistPhotos(docRef.id, photos);
-        //     if (photoUrls.length) {
-        //         await window.firebaseUpdateDoc(docRef, { photos: photoUrls });
-        //     }
-        // }
-
         showFormAlert('success', 'Checklist enviado para o painel admin com sucesso!');
         document.getElementById('mainChecklist').reset();
         // clearAllPhotoPreviews(); // Esta linha já foi comentada em um passo anterior
@@ -577,9 +468,6 @@ async function saveChecklist(event) {
         console.error('Erro ao enviar dados para o painel:', error);
         if (docRef && window.firebaseDeleteDoc) {
             try {
-                // if (window.firebaseDeleteObject) {
-                //     await cleanupChecklistFiles(docRef.id);
-                // }
                 await window.firebaseDeleteDoc(docRef);
             } catch (cleanupError) {
                 console.warn('Falha ao desfazer o checklist após erro:', cleanupError);

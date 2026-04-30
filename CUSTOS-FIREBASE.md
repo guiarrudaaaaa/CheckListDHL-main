@@ -61,3 +61,38 @@ const q = query(
 - Uso estimado: < 1% dos limites gratuitos
 - Segurança: Regras configuradas
 - Monitoramento: Firebase Console ativo
+
+---
+
+## 🧭 Plano de Ação Recomendado
+
+Para deixar o projeto pronto para deploy seguro e bem organizado, siga estes passos:
+
+1. Estrutura de projeto
+   - Crie `package.json` com dependências mínimas para lint, build e deploy.
+   - Adicione `.gitignore` para `node_modules`, `.env`, `.venv`, e arquivos temporários.
+   - Crie `.env.example` com variáveis Firebase documentadas.
+
+2. Regras e segurança do Firebase
+   - Atualize `firestore.rules` para exigir `request.auth != null` em leitura/escrita e admin para exclusão.
+   - Atualize `storage.rules` para permitir somente leitura/gravação autenticada em `/checklists/*`.
+   - Remova credenciais diretamente do código e use variáveis de ambiente.
+
+3. CI/CD e deploy
+   - Configure GitHub Actions para rodar `npm install`, `npm run build` e, se houver, `npm test` em cada push para `main`.
+   - Crie `netlify.toml` ou configure o painel Netlify com build command e publish directory.
+   - Certifique-se de que a branch principal (`main`) esteja limpa e pronta para deploy.
+
+4. Firebase multiplos ambientes
+   - Separe projetos Firebase para `dev`, `staging` e `prod`.
+   - Use arquivos de configuração ou variáveis de ambiente para trocar o projeto alvo.
+   - Garanta que cada ambiente tenha regras e billing separados.
+
+5. Testes e validação
+   - Adicione smoke tests básicos para validar o form de checklist e o login admin.
+   - Valide o deploy em staging antes de apontar para produção.
+   - Use Lighthouse ou Web Vitals para medir performance e tempo de carregamento.
+
+6. Documentação e monitoramento
+   - Documente no README como configurar variáveis de ambiente e fazer deploy.
+   - Mantenha alertas no Firebase e orçamento zero no Google Cloud para evitar custos inesperados.

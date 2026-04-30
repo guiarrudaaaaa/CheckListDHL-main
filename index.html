@@ -65,9 +65,14 @@
                             <option value="OUTBOUND">OUTBOUND (Saída) </option>
                         </select>
                     </div>
-                    <!-- Campo NF/DT: Nota fiscal ou documento de transporte -->
+                    <!-- Campo NF: número da nota fiscal -->
                     <div class="md:col-span-4">
-                        <label class="text-[10px] font-bold text-black uppercase">NF / DT</label>
+                        <label class="text-[10px] font-bold text-black uppercase">NF</label>
+                        <input id="nfNumberInput" type="text" class="input-field" inputmode="numeric" pattern="\d*" required oninput="numericOnly(this)">
+                    </div>
+                    <!-- Campo DT: número do documento de transporte -->
+                    <div class="md:col-span-4">
+                        <label class="text-[10px] font-bold text-black uppercase">DT</label>
                         <input id="dtNumberInput" type="text" class="input-field" inputmode="numeric" pattern="\d*" required oninput="numericOnly(this)">
                     </div>
                     <!-- Campo Doca: Identificação da doca -->
@@ -134,7 +139,7 @@
                 <span class="w-8 h-8 dhl-yellow text-black flex items-center justify-center rounded-lg font-black italic">03</span>
                 <h2 class="text-black font-bold uppercase">Conferência Técnica de Itens</h2>
             </div>
-            <button type="button" onclick="addItemRow()" class="dhl-yellow text-black px-6 py-2 rounded-xl text-xs font-black uppercase shadow-lg">＋ Item</button>
+            <button type="button" onclick="addItemRow({ focus: true })" class="dhl-yellow text-black px-6 py-2 rounded-xl text-xs font-black uppercase shadow-lg">＋ Item</button>
         </div>
 
         <!-- Container da Tabela Centralizado -->

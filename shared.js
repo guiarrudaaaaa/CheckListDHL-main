@@ -1,3 +1,5 @@
+// ===== FUNÇÕES UTILITÁRIAS =====
+// Atualiza o relógio em tempo real
 function updateClock(elementId = 'liveClock') {
     const clock = document.getElementById(elementId);
     if (!clock) return;
@@ -10,11 +12,13 @@ function updateClock(elementId = 'liveClock') {
     });
 }
 
+// Sanitiza texto removendo caracteres especiais
 function sanitizeText(input) {
     if (typeof input !== 'string') return '';
     return input.replace(/[<>'"&]/g, '').trim();
 }
 
+// Escapa HTML para prevenir XSS
 function escapeHtml(value) {
     if (value === undefined || value === null) return '';
     return String(value)
@@ -25,6 +29,7 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+// Define innerHTML de forma segura, removendo scripts e event handlers
 function safeSetInnerHTML(element, html) {
     if (!element || typeof html !== 'string') return;
     const sanitized = html
@@ -34,6 +39,7 @@ function safeSetInnerHTML(element, html) {
     element.innerHTML = sanitized;
 }
 
+// Escapa valores para CSV
 function csvEscape(value) {
     const text = value === undefined || value === null ? '' : String(value);
     return `"${text.replace(/"/g, '""')}"`;

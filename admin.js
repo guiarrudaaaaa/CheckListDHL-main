@@ -87,10 +87,15 @@ function validateChecklistData(data) {
         if (typeof item !== 'object' || !item) return false;
         // Sanitiza campos de texto
         if (item.dtNumber) item.dtNumber = sanitizeText(item.dtNumber);
+        if (item.nfNumber) item.nfNumber = sanitizeText(item.nfNumber);
         if (item.driverName) item.driverName = sanitizeText(item.driverName);
         if (item.placaCavalo) item.placaCavalo = sanitizeText(item.placaCavalo);
         if (item.placaCarreta1) item.placaCarreta1 = sanitizeText(item.placaCarreta1);
         if (item.transportadora) item.transportadora = sanitizeText(item.transportadora);
+        if (item.origem) item.origem = sanitizeText(item.origem);
+        if (item.lacre1) item.lacre1 = sanitizeText(item.lacre1);
+        if (item.lacre2) item.lacre2 = sanitizeText(item.lacre2);
+        if (item.statusLacre) item.statusLacre = sanitizeText(item.statusLacre);
         if (item.observations) item.observations = sanitizeText(item.observations);
         return true;
     });
@@ -192,10 +197,7 @@ async function handleSignOut() {
     await window.firebaseSignOut(window.firebaseAuth);
 }
 
-function csvEscape(value) {
-    const text = value === undefined || value === null ? '' : String(value);
-    return `"${text.replace(/"/g, '""')}"`;
-}
+// Função para escapar valores CSV (usando a de shared.js)
 
 // ===== FUNÇÃO UTILITÁRIA =====
 // Formata valores para exibição, substituindo valores vazios por '—'
@@ -351,12 +353,16 @@ function viewChecklistDetails(index) {
                     <h3 class="font-bold text-lg mb-3">🏷️ Identificação</h3>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                         <div><strong>Tipo:</strong> ${checklist.operationType === 'IN' ? '📥 Inbound' : '📤 Outbound'}</div>
+                        <div><strong>NF:</strong> ${escapeHtml(formatValue(checklist.nfNumber))}</div>
                         <div><strong>DT:</strong> ${escapeHtml(formatValue(checklist.dtNumber))}</div>
                         <div><strong>Motorista:</strong> ${escapeHtml(formatValue(checklist.driverName))}</div>
                         <div><strong>Cavalo:</strong> ${escapeHtml(formatValue(checklist.placaCavalo))}</div>
                         <div><strong>Carreta:</strong> ${escapeHtml(formatValue(checklist.placaCarreta1))}</div>
                         <div><strong>Doca:</strong> ${escapeHtml(formatValue(checklist.doca))}</div>
                         <div><strong>Transportadora:</strong> ${escapeHtml(formatValue(checklist.transportadora))}</div>
+                        <div><strong>Status Lacre:</strong> ${escapeHtml(formatValue(checklist.statusLacre))}</div>
+                        <div><strong>Lacre 1:</strong> ${escapeHtml(formatValue(checklist.lacre1))}</div>
+                        <div><strong>Lacre 2:</strong> ${escapeHtml(formatValue(checklist.lacre2))}</div>
                         <div><strong>Check-in:</strong> ${escapeHtml(formatValue(checklist.checkinTime))}</div>
                         <div><strong>Origem:</strong> ${escapeHtml(formatValue(checklist.origem))}</div>
                     </div>
@@ -441,6 +447,26 @@ function viewChecklistDetails(index) {
                 <div class="bg-purple-50 p-4 rounded-lg">
                     <h3 class="font-bold text-lg mb-3">📝 Observações</h3>
                     <p class="text-gray-700">${escapeHtml(checklist.observations)}</p>
+                </div>
+                ` : ''}
+
+                ${(checklist.driverSignature || checklist.checkerSignature) ? `
+                <div class="bg-slate-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-lg mb-3">✍️ Assinaturas</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        ${checklist.driverSignature ? `
+                        <div class="bg-white p-4 rounded-lg border">
+                            <p class="font-bold mb-2">Motorista</p>
+                            <img src="${escapeHtml(checklist.driverSignature)}" alt="Assinatura Motorista" class="w-full h-44 object-contain">
+                        </div>
+                        ` : ''}
+                        ${checklist.checkerSignature ? `
+                        <div class="bg-white p-4 rounded-lg border">
+                            <p class="font-bold mb-2">Conferente</p>
+                            <img src="${escapeHtml(checklist.checkerSignature)}" alt="Assinatura Conferente" class="w-full h-44 object-contain">
+                        </div>
+                        ` : ''}
+                    </div>
                 </div>
                 ` : ''}
 
@@ -545,9 +571,6 @@ async function deleteChecklist(index) {
     }
 
     try {
-        // if (window.firebaseDeleteObject) {
-        //     await deleteChecklistFiles(checklist.id);
-        // }
         await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, 'checklists', checklist.id));
 
         // Fechar modal de detalhes caso esteja aberto
@@ -571,25 +594,6 @@ async function deleteChecklist(index) {
 window.viewChecklistDetailsById = viewChecklistDetailsById;
 window.deleteChecklistById = deleteChecklistById;
 window.deleteChecklist = deleteChecklist;
-
-// async function deleteChecklistFiles(checklistId) {
-//     if (!window.firebaseStorage || !window.firebaseStorageRef || !window.firebaseDeleteObject) return;
-
-//     const deletePromises = [];
-//     for (let i = 1; i <= 6; i += 1) {
-//         const storagePath = `checklists/${checklistId}/photo-${i}.jpg`;
-//         const fileRef = window.firebaseStorageRef(window.firebaseStorage, storagePath);
-//         deletePromises.push(
-//             window.firebaseDeleteObject(fileRef).catch(err => {
-//                 if (err && err.code !== 'storage/object-not-found') {
-//                     console.warn(`Falha ao excluir arquivo ${storagePath}:`, err);
-//                 }
-//             })
-//         );
-//     }
-
-//     await Promise.all(deletePromises);
-// }
 
 function viewChecklistDetailsById(id) {
     const index = allChecklists.findIndex(item => item.id === id);
@@ -630,42 +634,114 @@ document.getElementById('newEntryBtn').addEventListener('click', () => {
     window.location.href = 'index.html';
 });
 
+function getVisibleChecklists() {
+    let filtered = allChecklists;
+    if (currentFilter === 'inbound') {
+        filtered = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'IN');
+    } else if (currentFilter === 'outbound') {
+        filtered = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'OUT');
+    }
+
+    const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+    if (searchTerm) {
+        filtered = filtered.filter(c =>
+            String(c.dtNumber || '').toLowerCase().includes(searchTerm) ||
+            String(c.driverName || '').toLowerCase().includes(searchTerm) ||
+            String(c.placaCavalo || '').toLowerCase().includes(searchTerm) ||
+            String(c.placaCarreta1 || '').toLowerCase().includes(searchTerm) ||
+            String(c.transportadora || '').toLowerCase().includes(searchTerm)
+        );
+    }
+
+    return filtered;
+}
+
 // Ouvinte para o botão "Exportar Excel"
 document.getElementById('exportBtn').addEventListener('click', () => {
-    // Verifica se há registros para exportar
-    if (allChecklists.length === 0) {
+    const visibleChecklists = getVisibleChecklists();
+    if (visibleChecklists.length === 0) {
         alert('Nenhum registro para exportar');
         return;
     }
 
-    // Cria cabeçalho do CSV
-    let csv = 'DT,MOTORISTA,CAVALO,CARRETA,DOCA,CHECK-IN,TRANSPORTADORA,TOTAL_FARDOS,AVARIADOS,SCRAP\n';
-    // Adiciona cada registro ao CSV
-    allChecklists.forEach(c => {
-        const dt = formatValue(c.dtNumber);
-        const motorista = formatValue(c.driverName);
-        const cavalo = formatValue(c.placaCavalo);
-        const carreta = formatValue(c.placaCarreta1);
-        const doca = formatValue(c.doca);
-        const checkin = formatValue(c.checkinTime);
-        const transp = formatValue(c.transportadora);
-        const fardos = c.totalFardos || 0;
-        const avar = c.avariados || 0;
-        const scrap = c.scrap || 0;
+    if (!window.XLSX) {
+        alert('Biblioteca Excel não carregada. Atualize a página e tente novamente.');
+        return;
+    }
 
-        csv += [dt, motorista, cavalo, carreta, doca, checkin, transp, fardos, avar, scrap].map(csvEscape).join(',') + '\n';
-    });
+    const headers = [
+        'Tipo / Status',
+        'DT',
+        'NF',
+        'Motorista',
+        'Cavalo',
+        'Carreta',
+        'Doca',
+        'Transportadora',
+        'Origem',
+        'Total Fardos',
+        'Avariados',
+        'Scrap',
+        'Avarias Internas',
+        'Total Bons',
+        'Check-in',
+        'Status Lacre',
+        'Lacre 1',
+        'Lacre 2',
+        'Observações'
+    ];
 
-    // Cria blob com o conteúdo CSV
-    const blob = new Blob([csv], { type: 'text/csv' });
-    // Cria URL para o blob
+    const rows = visibleChecklists.map(c => [
+        c.operationType === 'IN' ? 'INBOUND' : c.operationType === 'OUT' ? 'OUTBOUND' : '',
+        formatValue(c.dtNumber),
+        formatValue(c.nfNumber),
+        formatValue(c.driverName),
+        formatValue(c.placaCavalo),
+        formatValue(c.placaCarreta1),
+        formatValue(c.doca),
+        formatValue(c.transportadora),
+        formatValue(c.origem),
+        c.totalFardos || 0,
+        c.avariados || 0,
+        c.scrap || 0,
+        c.avariasInternas || 0,
+        c.totalBonsGeral || 0,
+        formatValue(c.checkinTime),
+        formatValue(c.statusLacre),
+        formatValue(c.lacre1),
+        formatValue(c.lacre2),
+        formatValue(c.observations)
+    ]);
+
+    const workbook = XLSX.utils.book_new();
+    const data = [
+        ['Checklist de Projeto'],
+        []
+    ];
+    data.push(headers);
+    rows.forEach(row => data.push(row));
+
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }];
+    worksheet['!cols'] = headers.map(() => ({ wch: 18 }));
+
+    const totalRowIndex = rows.length + 4;
+    const totalFardosFormula = `SUM(J3:J${rows.length + 2})`;
+    const totalRecordsFormula = `COUNTA(A3:A${rows.length + 2})`;
+    XLSX.utils.sheet_add_aoa(worksheet, [
+        ['Resumo', '', '', '', '', '', '', '', 'Total Fardos', { f: totalFardosFormula }],
+        ['', '', '', '', '', '', '', '', 'Registros Exportados', { f: totalRecordsFormula }]
+    ], { origin: `A${totalRowIndex}` });
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Checklists');
+    const workbookArray = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([workbookArray], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
-    // Cria elemento de link para download
     const a = document.createElement('a');
     a.href = url;
-    a.download = `checklists_${new Date().toISOString().split('T')[0]}.csv`; // Nome do arquivo com data
-    // Dispara o download
+    a.download = `checklists_${new Date().toISOString().split('T')[0]}.xlsx`;
     a.click();
+    URL.revokeObjectURL(url);
 });
 
 // ===== INICIALIZAÇÃO =====
