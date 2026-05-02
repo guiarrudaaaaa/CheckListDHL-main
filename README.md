@@ -3,7 +3,7 @@
 ## Visão geral
 
 Este projeto é uma aplicação web de checklist operacional com backend Firebase.
-Ela permite o envio de checklists com fotos e a visualização segura dos registros em um painel administrativo.
+Ela permite o envio de checklists e a visualização segura dos registros em um painel administrativo.
 
 ### Páginas principais
 - `index.html`: formulário de checklist operado por usuários autenticados
@@ -12,7 +12,6 @@ Ela permite o envio de checklists com fotos e a visualização segura dos regist
 ### Tecnologia principal
 - Firebase Authentication
 - Cloud Firestore
-- Firebase Storage
 - JavaScript puro com Tailwind CSS para estilo
 
 ---
@@ -28,8 +27,7 @@ O formulário permite:
 - seleção de lacres e observações de carga
 - conferência técnica de itens com cálculo automático de faltas, sobras e bons
 - controle de pallets
-- upload de até 6 fotos por checklist
-- gravação dos dados em Firestore e upload das fotos para Storage
+- gravação dos dados em Firestore
 
 ### Painel administrativo (`admin.html`)
 
@@ -39,7 +37,7 @@ O painel permite:
 - busca por DT, motorista, placa ou transportadora
 - filtro por todos / inbound / outbound
 - visualização de detalhes completos em modal
-- exclusão de registros com limpeza dos arquivos de foto no Storage
+- exclusão de registros no Firestore
 - exportação dos dados para CSV
 
 ---
@@ -48,14 +46,14 @@ O painel permite:
 
 - `index.html`: interface do formulário de checklist e login
 - `index.css`: estilos da interface principal
-- `index.js`: lógica de formulário, validação, upload de fotos e gravação em Firebase
+- `index.js`: lógica de formulário, validação e gravação em Firebase
 - `admin.html`: painel administrativo e relatório
 - `admin.css`: estilos do painel administrativo
 - `admin.js`: lógica do painel, filtros, renderização e exclusão
-- `firebase-init.js`: inicialização de Firebase Auth, Firestore e Storage
+- `firebase-init.js`: inicialização de Firebase Auth e Firestore
 - `shared.js`: utilitários de sanitização, relógio e escape de HTML
 - `firestore.rules`: regras de segurança do Firestore
-- `storage.rules`: regras de segurança do Firebase Storage
+- `storage.rules`: regras de segurança do Firebase Storage (para futuros uploads de arquivos)
 
 ---
 
@@ -65,12 +63,11 @@ O painel permite:
 - uso de Firebase Authentication para liberar envio e acesso ao painel
 - `firestore.rules` exige que `createdByUid` seja igual ao usuário autenticado no momento da criação
 - exclusão de registros permitida apenas para admins com `request.auth.token.admin == true`
-- `storage.rules` restringe leitura e escrita de fotos a usuários autenticados
+- `storage.rules` restringe leitura e escrita de arquivos a usuários autenticados
 - sanitização de entradas antes de gravar e ao renderizar o painel
 
 ### Integridade de dados
-- rollback de checklist em caso de falha no upload das fotos após a criação do documento
-- limpeza de arquivos no Storage quando um checklist é excluído
+- rollback de checklist em caso de erro durante a gravação de dados
 - listener em tempo real (`onSnapshot`) no painel admin para evitar polling constante
 
 ### Qualidade do código
@@ -84,14 +81,13 @@ O painel permite:
 
 ### Salvar checklist
 - cria um documento em `checklists`
-- envia fotos para `checklists/{id}/photo-{n}.jpg`
-- salva URLs de fotos no documento Firestore
+- grava dados em documentos `checklists/{id}` no Firestore
 - armazena metadados do usuário (`createdByUid`, `createdByEmail`)
 
 ### Painel admin
 - usa `onSnapshot` para atualizações em tempo real
 - renderiza dados sanitizados no painel
-- exibe modal de detalhes com itens, higiene, fotos e observações
+- exibe modal de detalhes com itens, higiene e observações
 - exporta CSV com os dados carregados
 
 ---

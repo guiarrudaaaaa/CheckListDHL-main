@@ -6,7 +6,7 @@
     <title>DHL - Relatório de Operações</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/admin.css">
+    <link rel="stylesheet" href="admin.css">
 </head>
 <body>
     <header class="navbar-fullwidth sticky top-0 z-50">
@@ -16,8 +16,8 @@
                 <div class="navbar-page-subtitle">DHL / Suzano CD CWB</div>
             </div>
             <div class="navbar-center logos-center">
-                <img src="/images/DHL_Logo_BF_rgb.png" alt="DHL" class="brand-logo">
-                <img src="/images/suzano-logo.png" alt="Suzano" class="brand-logo-suzano">
+                <img src="images/DHL_Logo_BF_rgb.png" alt="DHL" class="brand-logo">
+                <img src="images/suzano-logo.png" alt="Suzano" class="brand-logo-suzano">
             </div>
             <div class="navbar-right">
                 <div class="navbar-chip navbar-chip-synced">
@@ -49,8 +49,8 @@
         </div>
     </div>
 
-    <main id="adminMain" class="max-w-7xl mx-auto px-6 py-8">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <main id="adminMain" class="max-w-7xl mx-auto px-6 py-8 hidden">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
             <div class="metric-card red">
                 <p class="metric-label">📋 Total de Registros</p>
                 <p class="metric-value" id="totalRegistros">0</p>
@@ -64,7 +64,15 @@
                 <p class="metric-value" id="outboundCount">0</p>
             </div>
             <div class="metric-card purple">
-                <p class="metric-label">📦 Total Pallets</p>
+                <p class="metric-label">📦 Total Pallets Inbound</p>
+                <p class="metric-value" id="totalPbrInbound">0</p>
+            </div>
+            <div class="metric-card orange">
+                <p class="metric-label">📦 Total Pallets Outbound</p>
+                <p class="metric-value" id="totalPbrOutbound">0</p>
+            </div>
+            <div class="metric-card teal">
+                <p class="metric-label">📦 Total Pallets Geral</p>
                 <p class="metric-value" id="totalPbrCount">0</p>
             </div>
         </div>
@@ -95,9 +103,9 @@
         </div>
     </main>
 
-    <script type="module" src="/firebase-init.js"></script>
+    <script type="module" src="firebase-init.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="/shared.js"></script>
-    <script src="/admin.js"></script>
+    <script src="shared.js"></script>
+    <script src="admin.js"></script>
 </body>
 </html>

@@ -1,9 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permite leitura, escrita, atualização e exclusão para qualquer um na coleção 'checklists'
+
+    // ✅ CHECKLIST PÚBLICO
     match /checklists/{document} {
       allow read, write: if true;
+    }
+
+    // 🔒 DADOS ADMIN (somente usuários autenticados)
+    match /admin/{document} {
+      allow read, write: if request.auth != null;
     }
   }
 }

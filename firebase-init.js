@@ -1,4 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
@@ -21,14 +21,14 @@ const firebaseConfig = {
   apiKey: "AIzaSyA8mJ2WWg9edJNDMqDLt9Jp-AQTzj66EeY",
   authDomain: "check-list-dhl-74819.firebaseapp.com",
   projectId: "check-list-dhl-74819",
-//   storageBucket: "check-list-dhl-74819.firebasestorage.app", // Comente esta linha
+  storageBucket: "check-list-dhl-74819.appspot.com",
   messagingSenderId: "249950457140",
   appId: "1:249950457140:web:a3d779e3f8075d134f6961",
   measurementId: "G-CZ0XZ14C68"
 };
 
-// Inicializa o app Firebase
-const app = initializeApp(firebaseConfig);
+// Inicializa o app Firebase se ainda não estiver inicializado
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
 

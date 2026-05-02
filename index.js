@@ -146,25 +146,27 @@ function clearFormAlert() {
 }
 
 // ===== GERAÇÃO DINÂMICA DO GRID DE HIGIENE =====
-// Define os critérios de higiene que serão exibidos
-const criteria = ["Paredes Internas", "Sem Furos", "Teto", "Chão Limpo", "Sem Odor", "Sem Pragas"];
-// Seleciona o container onde os critérios serão inseridos
+const hygieneCriteria = [
+    { key: 'paredes_internas', label: 'Paredes Internas' },
+    { key: 'sem_furos', label: 'Sem Furos' },
+    { key: 'teto', label: 'Teto' },
+    { key: 'chao_limpo', label: 'Chão Limpo' },
+    { key: 'sem_odor', label: 'Sem Odor' },
+    { key: 'sem_pragas', label: 'Sem Pragas' }
+];
+
 const hygieneGrid = document.getElementById('hygieneGrid');
-// Para cada critério, cria um elemento HTML com botões C/NC
-criteria.forEach(item => {
-    // Cria um div para cada item
+
+hygieneCriteria.forEach(item => {
     const div = document.createElement('div');
-    // Adiciona classes CSS para estilização
     div.className = "flex items-center justify-between p-4 bg-slate-200 rounded-xl border border-slate-300 shadow-sm";
-    // Define o HTML interno com rótulos e botões radio
-    div.innerHTML = `<span class="text-[9px] font-black text-slate-700 uppercase">${item}</span>
+    div.innerHTML = `<span class="text-[9px] font-black text-slate-700 uppercase">${item.label}</span>
         <div class="flex gap-2">
-            <input type="radio" name="${item}" id="${item}c" class="hidden peer/c" checked> <!-- Radio para "C" (checked por padrão) -->
-            <label for="${item}c" class="w-8 h-8 flex items-center justify-center bg-green-500 border border-green-600 rounded-lg peer-checked/c:bg-green-600 peer-checked/c:text-white text-[10px] font-bold cursor-pointer text-white">C</label> <!-- Label estilizado para "C" -->
-            <input type="radio" name="${item}" id="${item}nc" class="hidden peer/nc"> <!-- Radio para "NC" -->
-            <label for="${item}nc" class="w-8 h-8 flex items-center justify-center bg-slate-300 border border-slate-400 rounded-lg peer-checked/nc:bg-red-600 peer-checked/nc:border-red-700 peer-checked/nc:text-white text-[10px] font-bold cursor-pointer">NC</label> <!-- Label estilizado para "NC" -->
+            <input type="radio" name="${item.key}" id="${item.key}c" class="hidden peer/c" checked>
+            <label for="${item.key}c" class="w-8 h-8 flex items-center justify-center bg-green-500 border border-green-600 rounded-lg peer-checked/c:bg-green-600 peer-checked/c:text-white text-[10px] font-bold cursor-pointer text-white">C</label>
+            <input type="radio" name="${item.key}" id="${item.key}nc" class="hidden peer/nc">
+            <label for="${item.key}nc" class="w-8 h-8 flex items-center justify-center bg-slate-300 border border-slate-400 rounded-lg peer-checked/nc:bg-red-600 peer-checked/nc:border-red-700 peer-checked/nc:text-white text-[10px] font-bold cursor-pointer">NC</label>
         </div>`;
-    // Adiciona o div ao container
     hygieneGrid.appendChild(div);
 });
 
@@ -270,6 +272,11 @@ function auditAll() {
 function numericOnly(el) {
     if (!el) return;
     el.value = el.value.replace(/\D+/g, '');
+}
+
+function nfOnly(el) {
+    if (!el) return;
+    el.value = el.value.replace(/[^0-9\-]/g, '');
 }
 
 function validateChecklist() {
@@ -391,7 +398,7 @@ async function saveChecklist(event) {
         placaCarreta2: document.getElementById('placaCarreta2Input')?.value || '',
         transportadora: document.getElementById('transportadoraInput')?.value || '',
         doca: document.getElementById('docaInput')?.value || '',
-        totalPbr: document.getElementById('totalPbrInput')?.value || '0',
+        totalPbr: parseInt(document.getElementById('totalPbrInput')?.value || '0', 10) || 0,
         hygieneNote: document.getElementById('hygieneObservation')?.value.trim() || '',
         lacre1: document.getElementById('lacre1Input')?.value || '',
         lacre2: document.getElementById('lacre2Input')?.value || '',
@@ -407,10 +414,9 @@ async function saveChecklist(event) {
         checkerSignature: getSignatureData(document.getElementById('checkerSignatureCanvas'))
     };
 
-    const criteria = ["Paredes Internas", "Sem Furos", "Teto", "Chão Limpo", "Sem Odor", "Sem Pragas"];
-    criteria.forEach(item => {
-        const selected = document.querySelector(`input[name="${item}"]:checked`);
-        checklistData.hygiene[item] = selected ? (selected.id.endsWith('nc') ? 'NC' : 'C') : 'N/A';
+    hygieneCriteria.forEach(item => {
+        const selected = document.querySelector(`input[name="${item.key}"]:checked`);
+        checklistData.hygiene[item.label] = selected ? (selected.value === 'NC' ? 'NC' : 'C') : 'N/A';
     });
 
     const itemRows = document.querySelectorAll('#itemTableBody tr');

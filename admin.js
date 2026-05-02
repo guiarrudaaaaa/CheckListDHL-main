@@ -102,7 +102,7 @@ function validateChecklistData(data) {
 }
 
 // ===== GERENCIAMENTO DE DADOS =====
-// Variáveis globais para controlar filtros e armazenar checklists
+// Variáveis globais para gerenciar filtros e armazenar checklists
 let currentFilter = 'todos'; // Filtro atual aplicado ('todos', 'inbound', 'outbound')
 let allChecklists = []; // Array que armazena todos os checklists carregados
 let checklistsUnsubscribe = null; // Função para cancelar a escuta em tempo real
@@ -114,8 +114,12 @@ function updateMetrics() {
     const inCount = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'IN').length;
     // Conta operações outbound (OUT)
     const outCount = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'OUT').length;
+    // Total de pallets inbound
+    const totalPbrInbound = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'IN').reduce((sum, item) => sum + (parseInt(item.totalPbr || item.totalPBR || 0, 10) || 0), 0);
+    // Total de pallets outbound
+    const totalPbrOutbound = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'OUT').reduce((sum, item) => sum + (parseInt(item.totalPbr || item.totalPBR || 0, 10) || 0), 0);
     // Total de pallets usados em todos os checklists
-    const totalPbr = allChecklists.reduce((sum, item) => sum + (parseInt(item.totalPbr || item.totalPBR || 0, 10) || 0), 0);
+    const totalPbr = totalPbrInbound + totalPbrOutbound;
     // Total de registros
     const totalRegistros = allChecklists.length;
 
@@ -123,11 +127,15 @@ function updateMetrics() {
     const totalRegistrosEl = document.getElementById('totalRegistros');
     const inboundCountEl = document.getElementById('inboundCount');
     const outboundCountEl = document.getElementById('outboundCount');
+    const totalPbrInboundEl = document.getElementById('totalPbrInbound');
+    const totalPbrOutboundEl = document.getElementById('totalPbrOutbound');
     const totalPbrCountEl = document.getElementById('totalPbrCount');
 
     if (totalRegistrosEl) totalRegistrosEl.textContent = totalRegistros;
     if (inboundCountEl) inboundCountEl.textContent = inCount;
     if (outboundCountEl) outboundCountEl.textContent = outCount;
+    if (totalPbrInboundEl) totalPbrInboundEl.textContent = totalPbrInbound;
+    if (totalPbrOutboundEl) totalPbrOutboundEl.textContent = totalPbrOutbound;
     if (totalPbrCountEl) totalPbrCountEl.textContent = totalPbr;
 
     // Atualiza os contadores nas abas de filtro
@@ -154,7 +162,8 @@ function showAuthError(message) {
 function showAuthenticatedAdmin() {
     document.getElementById('authScreen')?.classList.add('hidden');
     document.getElementById('adminMain')?.classList.remove('hidden');
-    document.getElementById('signOutBtn')?.classList.add('hidden');
+    document.getElementById('signOutBtn')?.classList.remove('hidden');
+    showAuthError('');
     subscribeChecklists();
 }
 
@@ -194,7 +203,13 @@ async function handleLogin() {
 
 async function handleSignOut() {
     if (!window.firebaseAuth || !window.firebaseSignOut) return;
-    await window.firebaseSignOut(window.firebaseAuth);
+    try {
+        await window.firebaseSignOut(window.firebaseAuth);
+        showUnauthenticatedAdmin();
+    } catch (err) {
+        console.error('Erro ao sair:', err);
+        alert('Não foi possível sair. Tente novamente.');
+    }
 }
 
 // Função para escapar valores CSV (usando a de shared.js)
@@ -219,17 +234,14 @@ function renderTable() {
     // Aplica filtro por tipo de operação
     let filtered = allChecklists;
     if (currentFilter === 'inbound') {
-        // Filtra apenas operações inbound
         filtered = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'IN');
     } else if (currentFilter === 'outbound') {
-        // Filtra apenas operações outbound
         filtered = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'OUT');
     }
 
     // Aplica filtro de busca por texto
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     if (searchTerm) {
-        // Filtra por DT, motorista, placas ou transportadora
         filtered = filtered.filter(c =>
             String(c.dtNumber || '').toLowerCase().includes(searchTerm) ||
             String(c.driverName || '').toLowerCase().includes(searchTerm) ||
@@ -250,19 +262,19 @@ function renderTable() {
     table.innerHTML = `
         <thead>
             <tr>
-                <th>TIPO / STATUS</th> <!-- Tipo de operação e status -->
-                <th>MOTORISTA</th> <!-- Nome do motorista -->
-                <th>CAVALO</th> <!-- Placa do cavalo -->
-                <th>CARRETA</th> <!-- Placa da carreta -->
-                <th>DOCA</th> <!-- Número da doca -->
-                <th>Nº DT</th> <!-- Número do DT -->
-                <th>CHECK-IN</th> <!-- Horário de check-in -->
-                <th>TRANSPORTADORA</th> <!-- Nome da transportadora -->
-                <th>TOTAL FARDOS</th> <!-- Total de fardos -->
-                <th>AVARIADOS</th> <!-- Quantidade avariados -->
-                <th>SCRAP</th> <!-- Quantidade scrap -->
-                <th>INT</th> <!-- Avarias internas -->
-                <th>AÇÕES</th> <!-- Botões de ação -->
+                <th>TIPO / STATUS</th>
+                <th>MOTORISTA</th>
+                <th>CAVALO</th>
+                <th>CARRETA</th>
+                <th>DOCA</th>
+                <th>Nº DT</th>
+                <th>CHECK-IN</th>
+                <th>TRANSPORTADORA</th>
+                <th>TOTAL FARDOS</th>
+                <th>AVARIADOS</th>
+                <th>SCRAP</th>
+                <th>INT</th>
+                <th>AÇÕES</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -273,43 +285,35 @@ function renderTable() {
 
     // Para cada checklist filtrado, cria uma linha na tabela
     filtered.forEach((checklist) => {
-        // Encontra o índice global no array original
-        const globalIndex = allChecklists.indexOf(checklist);
-        // Cria elemento de linha
         const row = document.createElement('tr');
-        // Formata o tipo de operação
         const opTypeRaw = formatValue(checklist.operationType);
         const opType = escapeHtml(opTypeRaw);
-        // Define emoji baseado no tipo
         const opEmoji = opTypeRaw === 'IN' ? '📥' : (opTypeRaw === 'OUT' ? '📤' : '❓');
-        // Define classe do badge
         const badgeClass = opTypeRaw === 'IN' ? 'badge-in' : (opTypeRaw === 'OUT' ? 'badge-out' : '');
 
-        // Define o HTML da linha com todas as colunas
         row.innerHTML = `
             <td>
                 <div class="status-cell">
-                    <span>${opEmoji}</span> <!-- Emoji do tipo -->
-                    <span class="badge ${badgeClass}">${opType}</span> <!-- Badge com tipo -->
+                    <span>${opEmoji}</span>
+                    <span class="badge ${badgeClass}">${opType}</span>
                 </div>
             </td>
-            <td class="text-bold">${escapeHtml(formatValue(checklist.driverName))}</td> <!-- Motorista -->
-            <td class="text-bold">${escapeHtml(formatValue(checklist.placaCavalo))}</td> <!-- Cavalo -->
-            <td class="text-bold">${escapeHtml(formatValue(checklist.placaCarreta1))}</td> <!-- Carreta -->
-            <td class="text-center"><span class="badge badge-doca">${escapeHtml(formatValue(checklist.doca))}</span></td> <!-- Doca -->
-            <td class="text-bold">${escapeHtml(formatValue(checklist.dtNumber))}</td> <!-- DT -->
-            <td class="text-bold">⏰ ${escapeHtml(formatValue(checklist.checkinTime))}</td> <!-- Check-in -->
-            <td class="text-bold">${escapeHtml(formatValue(checklist.transportadora))}</td> <!-- Transportadora -->
-            <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.totalFardos || 0)}</td> <!-- Total fardos -->
-            <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.avariados || 0)}</td> <!-- Avariados -->
-            <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.scrap || 0)}</td> <!-- Scrap -->
-            <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.avariasInternas || 0)}</td> <!-- Internas -->
+            <td class="text-bold">${escapeHtml(formatValue(checklist.driverName))}</td>
+            <td class="text-bold">${escapeHtml(formatValue(checklist.placaCavalo))}</td>
+            <td class="text-bold">${escapeHtml(formatValue(checklist.placaCarreta1))}</td>
+            <td class="text-center"><span class="badge badge-doca">${escapeHtml(formatValue(checklist.doca))}</span></td>
+            <td class="text-bold">${escapeHtml(formatValue(checklist.dtNumber))}</td>
+            <td class="text-bold">⏰ ${escapeHtml(formatValue(checklist.checkinTime))}</td>
+            <td class="text-bold">${escapeHtml(formatValue(checklist.transportadora))}</td>
+            <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.totalFardos || 0)}</td>
+            <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.avariados || 0)}</td>
+            <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.scrap || 0)}</td>
+            <td class="text-bold text-center" style="color: #D40511;">${escapeHtml(checklist.avariasInternas || 0)}</td>
             <td class="text-center">
-                <button type="button" class="action-btn edit-btn view-btn" title="Visualizar Detalhes">👁️</button> <!-- Botão visualizar -->
-                <button type="button" class="action-btn delete-btn delete-row-btn" title="Excluir">🗑️</button> <!-- Botão excluir -->
+                <button type="button" class="action-btn edit-btn view-btn" title="Visualizar Detalhes">👁️</button>
+                <button type="button" class="action-btn delete-btn delete-row-btn" title="Excluir">🗑️</button>
             </td>
         `;
-        // Adiciona a linha ao corpo da tabela
         tbody.appendChild(row);
         const viewButton = row.querySelector('.view-btn');
         const deleteButton = row.querySelector('.delete-row-btn');
@@ -317,7 +321,6 @@ function renderTable() {
         if (deleteButton) deleteButton.addEventListener('click', () => deleteChecklistById(checklist.id));
     });
 
-    // Adiciona a tabela completa ao container
     container.appendChild(table);
 }
 
@@ -334,6 +337,8 @@ function viewChecklistDetails(index) {
             : 0);
 
     const hygieneNote = (checklist.hygieneNote || checklist.hygieneObservation || checklist.hygiene_notes || checklist.hygiene_note || '').toString().trim();
+    const hygiene = normalizeHygieneEntries(checklist.hygiene || {});
+    const hygieneEntries = Object.entries(hygiene).length ? Object.entries(hygiene) : [['Sem dados', 'N/A']];
 
     // Cria modal com detalhes completos
     const modal = document.createElement('div');
@@ -342,9 +347,15 @@ function viewChecklistDetails(index) {
     safeSetInnerHTML(modal, `
         <div class="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-gray-200">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-2xl font-bold text-gray-800">📋 Detalhes do Checklist</h2>
-                    <button type="button" class="modal-close text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                <div class="flex justify-between items-center gap-2">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">📋 Detalhes do Checklist</h2>
+                        <p class="text-sm text-slate-500">ID: ${escapeHtml(checklist.id || '')}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" class="modal-edit-btn btn-secondary">Editar</button>
+                        <button type="button" class="modal-close text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    </div>
                 </div>
             </div>
             <div class="p-6 space-y-6">
@@ -357,7 +368,9 @@ function viewChecklistDetails(index) {
                         <div><strong>DT:</strong> ${escapeHtml(formatValue(checklist.dtNumber))}</div>
                         <div><strong>Motorista:</strong> ${escapeHtml(formatValue(checklist.driverName))}</div>
                         <div><strong>Cavalo:</strong> ${escapeHtml(formatValue(checklist.placaCavalo))}</div>
-                        <div><strong>Carreta:</strong> ${escapeHtml(formatValue(checklist.placaCarreta1))}</div>
+                        <div><strong>Carreta 1:</strong> ${escapeHtml(formatValue(checklist.placaCarreta1))}</div>
+                        <div><strong>Carreta 2:</strong> ${escapeHtml(formatValue(checklist.placaCarreta2))}</div>
+                        <div><strong>Total Paletes:</strong> ${escapeHtml(String(checklist.totalPbr || checklist.totalPBR || 0))}</div>
                         <div><strong>Doca:</strong> ${escapeHtml(formatValue(checklist.doca))}</div>
                         <div><strong>Transportadora:</strong> ${escapeHtml(formatValue(checklist.transportadora))}</div>
                         <div><strong>Status Lacre:</strong> ${escapeHtml(formatValue(checklist.statusLacre))}</div>
@@ -372,7 +385,7 @@ function viewChecklistDetails(index) {
                 <div class="bg-green-50 p-4 rounded-lg">
                     <h3 class="font-bold text-lg mb-3">🧼 Higiene e Estrutura</h3>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        ${Object.entries(checklist.hygiene || {}).map(([key, value]) => 
+                        ${hygieneEntries.map(([key, value]) => 
                             `<div class="flex justify-between items-center p-2 bg-white rounded border">
                                 <span class="text-sm">${escapeHtml(key)}</span>
                                 <span class="font-bold ${value === 'C' ? 'text-green-600' : 'text-red-600'}">${escapeHtml(value)}</span>
@@ -531,6 +544,14 @@ function viewChecklistDetails(index) {
         closeButton.addEventListener('click', () => modal.remove());
     }
 
+    const editButton = modal.querySelector('.modal-edit-btn');
+    if (editButton) {
+        editButton.addEventListener('click', () => {
+            modal.remove();
+            openChecklistEditor(checklist);
+        });
+    }
+
     document.body.appendChild(modal);
 }
 
@@ -547,6 +568,351 @@ function calculateTotalBons(checklist) {
 function calculateTotalFardos(checklist) {
     if (!checklist || !Array.isArray(checklist.items)) return checklist.totalFardos || 0;
     return checklist.items.reduce((sum, item) => sum + Number(item.previsto || 0), 0);
+}
+
+function normalizeHygieneEntries(hygiene) {
+    if (!hygiene || typeof hygiene !== 'object') return {};
+    return Object.entries(hygiene).reduce((acc, [key, value]) => {
+        if (value && typeof value === 'object' && 'label' in value && 'value' in value) {
+            acc[value.label || key] = String(value.value || '').trim().toUpperCase() || 'N/A';
+        } else if (typeof value === 'string') {
+            acc[key] = value.toString().trim().toUpperCase() || 'N/A';
+        } else {
+            acc[key] = String(value || '').trim().toUpperCase() || 'N/A';
+        }
+        return acc;
+    }, {});
+}
+
+async function updateChecklistDetails(id, updates) {
+    if (!window.firebaseDb || !window.firebaseUpdateDoc || !window.firebaseDoc) {
+        throw new Error('Firebase não está inicializado para atualização de checklist.');
+    }
+    const docRef = window.firebaseDoc(window.firebaseDb, 'checklists', id);
+    await window.firebaseUpdateDoc(docRef, updates);
+}
+
+function openChecklistEditor(checklist) {
+    const hygiene = normalizeHygieneEntries(checklist.hygiene || {});
+    const hygieneEntries = Object.entries(hygiene).length ? Object.entries(hygiene) : [
+        ['Paredes Internas', 'N/A'],
+        ['Sem Furos', 'N/A'],
+        ['Teto', 'N/A'],
+        ['Chão Limpo', 'N/A'],
+        ['Sem Odor', 'N/A'],
+        ['Sem Pragas', 'N/A']
+    ];
+    const items = Array.isArray(checklist.items) ? checklist.items : [];
+    const totalPbr = Number(checklist.totalPbr || checklist.totalPBR || 0);
+    const statusValues = Array.from(new Set([checklist.statusLacre || 'OK', 'OK', 'Quebrado', 'Ausente', 'Sem Lacre']));
+    const hygieneSelectionHtml = hygieneEntries.map(([key, value]) => {
+        const safeKey = key.replace(/\s+/g, '_').toLowerCase();
+        return `
+            <div class="bg-white p-3 rounded-lg border">
+                <div class="text-sm font-semibold mb-2">${escapeHtml(key)}</div>
+                <div class="flex flex-wrap gap-3 text-sm">
+                    <label class="flex items-center gap-2"><input type="radio" name="${safeKey}" value="C" ${value === 'C' ? 'checked' : ''}>C</label>
+                    <label class="flex items-center gap-2"><input type="radio" name="${safeKey}" value="NC" ${value === 'NC' ? 'checked' : ''}>NC</label>
+                    <label class="flex items-center gap-2"><input type="radio" name="${safeKey}" value="N/A" ${value !== 'C' && value !== 'NC' ? 'checked' : ''}>N/A</label>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    const modal = document.createElement('div');
+    modal.className = 'detail-modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    safeSetInnerHTML(modal, `
+        <div class="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200 flex items-center justify-between gap-2">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">✏️ Editar Checklist</h2>
+                    <p class="text-sm text-slate-500">ID: ${escapeHtml(checklist.id || '')}</p>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" class="modal-save-btn btn-primary">Salvar</button>
+                    <button type="button" class="modal-cancel-btn btn-secondary">Cancelar</button>
+                </div>
+            </div>
+            <div class="p-6 space-y-6">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-lg mb-3">🏷️ Identificação</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <label class="block text-sm font-semibold text-slate-700">
+                            Fluxo
+                            <select id="adminOperationType" class="input-field w-full mt-2">
+                                <option value="IN" ${checklist.operationType === 'IN' ? 'selected' : ''}>INBOUND</option>
+                                <option value="OUT" ${checklist.operationType === 'OUT' ? 'selected' : ''}>OUTBOUND</option>
+                            </select>
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">
+                            NF
+                            <input id="adminNfNumber" type="text" class="input-field w-full mt-2" value="${escapeHtml(checklist.nfNumber || '')}">
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">
+                            DT
+                            <input id="adminDtNumber" type="text" class="input-field w-full mt-2" value="${escapeHtml(checklist.dtNumber || '')}">
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">
+                            Motorista
+                            <input id="adminDriverName" type="text" class="input-field w-full mt-2" value="${escapeHtml(checklist.driverName || '')}">
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">
+                            Cavalo
+                            <input id="adminPlacaCavalo" type="text" class="input-field w-full mt-2" value="${escapeHtml(checklist.placaCavalo || '')}">
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">
+                            Carreta
+                            <input id="adminPlacaCarreta1" type="text" class="input-field w-full mt-2" value="${escapeHtml(checklist.placaCarreta1 || '')}">
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">
+                            Carreta 2
+                            <input id="adminPlacaCarreta2" type="text" class="input-field w-full mt-2" value="${escapeHtml(checklist.placaCarreta2 || '')}">
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">
+                            Total Paletes
+                            <input id="adminTotalPbr" type="number" class="input-field w-full mt-2" min="0" value="${escapeHtml(String(totalPbr))}">
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">
+                            Transportadora
+                            <input id="adminTransportadora" type="text" class="input-field w-full mt-2" value="${escapeHtml(checklist.transportadora || '')}">
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">
+                            Origem
+                            <input id="adminOrigem" type="text" class="input-field w-full mt-2" value="${escapeHtml(checklist.origem || '')}">
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">
+                            Doca
+                            <input id="adminDoca" type="text" class="input-field w-full mt-2" value="${escapeHtml(checklist.doca || '')}">
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">
+                            Status Lacre
+                            <select id="adminStatusLacre" class="input-field w-full mt-2">
+                                ${statusValues.map(value => `<option value="${escapeHtml(value)}" ${checklist.statusLacre === value ? 'selected' : ''}>${escapeHtml(value)}</option>`).join('')}
+                            </select>
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">
+                            Lacre 1
+                            <input id="adminLacre1" type="text" class="input-field w-full mt-2" value="${escapeHtml(checklist.lacre1 || '')}">
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">
+                            Lacre 2
+                            <input id="adminLacre2" type="text" class="input-field w-full mt-2" value="${escapeHtml(checklist.lacre2 || '')}">
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">
+                            Check-in
+                            <input id="adminCheckinTime" type="text" class="input-field w-full mt-2" value="${escapeHtml(checklist.checkinTime || '')}">
+                        </label>
+                    </div>
+                </div>
+                <div class="bg-yellow-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-lg mb-3">📦 Itens Conferidos</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm border-collapse border border-gray-300">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border border-gray-300 p-2">Código</th>
+                                    <th class="border border-gray-300 p-2">Previsto</th>
+                                    <th class="border border-gray-300 p-2">Realizado</th>
+                                    <th class="border border-gray-300 p-2">Faltas</th>
+                                    <th class="border border-gray-300 p-2">Sobras</th>
+                                    <th class="border border-gray-300 p-2">Avarias</th>
+                                    <th class="border border-gray-300 p-2">Scrap</th>
+                                    <th class="border border-gray-300 p-2">Av. Int.</th>
+                                    <th class="border border-gray-300 p-2">Bons</th>
+                                    <th class="border border-gray-300 p-2">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="edit-items-body">
+                                ${items.length ? items.map((item, index) => `
+                                    <tr class="edit-item-row" data-row-index="${index}">
+                                        <td class="border border-gray-300 p-2"><input type="text" class="table-input edit-item-code" value="${escapeHtml(item.code || '')}"></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-previsto" value="${escapeHtml(item.previsto || 0)}" min="0"></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-realizado" value="${escapeHtml(item.realizado || 0)}" min="0"></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-faltas" value="${escapeHtml(item.faltas || 0)}" readonly></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-sobras" value="${escapeHtml(item.sobras || 0)}" readonly></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-avarias" value="${escapeHtml(item.avarias || 0)}" min="0"></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-scrap" value="${escapeHtml(item.scrap || 0)}" min="0"></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-avint" value="${escapeHtml(item.avariasInternas || 0)}" min="0"></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-bons" value="${escapeHtml(item.bons || 0)}" readonly></td>
+                                        <td class="border border-gray-300 p-2 text-center"><button type="button" class="edit-item-remove-btn text-red-600">✕</button></td>
+                                    </tr>
+                                `).join('') : `
+                                    <tr class="edit-item-row" data-row-index="0">
+                                        <td class="border border-gray-300 p-2"><input type="text" class="table-input edit-item-code" value=""></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-previsto" value="0" min="0"></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-realizado" value="0" min="0"></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-faltas" value="0" readonly></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-sobras" value="0" readonly></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-avarias" value="0" min="0"></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-scrap" value="0" min="0"></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-avint" value="0" min="0"></td>
+                                        <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-bons" value="0" readonly></td>
+                                        <td class="border border-gray-300 p-2 text-center"><button type="button" class="edit-item-remove-btn text-red-600">✕</button></td>
+                                    </tr>
+                                `}
+                            </tbody>
+                        </table>
+                        <div class="mt-4">
+                            <button type="button" class="add-item-row-btn btn-secondary">＋ Adicionar item</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-lg mb-3">🧼 Higiene e Estrutura</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${hygieneSelectionHtml}
+                    </div>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <label for="adminHygieneObservation" class="text-sm font-bold uppercase mb-2 block">Observação de Higiene e Estrutura</label>
+                    <textarea id="adminHygieneObservation" class="w-full min-h-[120px] bg-white border border-muted rounded-2xl p-4 text-sm" placeholder="Observação de higiene...">${escapeHtml(checklist.hygieneNote || checklist.hygieneObservation || '')}</textarea>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <label for="adminObservations" class="text-sm font-bold uppercase mb-2 block">Observações Gerais</label>
+                    <textarea id="adminObservations" class="w-full min-h-[120px] bg-white border border-muted rounded-2xl p-4 text-sm" placeholder="Observações gerais...">${escapeHtml(checklist.observations || '')}</textarea>
+                </div>
+            </div>
+        </div>
+    `);
+
+    const cancelButton = modal.querySelector('.modal-cancel-btn');
+    if (cancelButton) {
+        cancelButton.addEventListener('click', () => modal.remove());
+    }
+
+    function recalcItemRow(row) {
+        const previsto = parseInt(row.querySelector('.edit-item-previsto')?.value, 10) || 0;
+        const realizado = parseInt(row.querySelector('.edit-item-realizado')?.value, 10) || 0;
+        const avarias = parseInt(row.querySelector('.edit-item-avarias')?.value, 10) || 0;
+        const scrap = parseInt(row.querySelector('.edit-item-scrap')?.value, 10) || 0;
+        const avint = parseInt(row.querySelector('.edit-item-avint')?.value, 10) || 0;
+        const faltas = Math.max(previsto - realizado, 0);
+        const sobras = Math.max(realizado - previsto, 0);
+        const bons = Math.max(realizado - (avarias + scrap + avint), 0);
+        row.querySelector('.edit-item-faltas').value = faltas;
+        row.querySelector('.edit-item-sobras').value = sobras;
+        row.querySelector('.edit-item-bons').value = bons;
+    }
+
+    function attachItemListeners(row) {
+        ['.edit-item-previsto', '.edit-item-realizado', '.edit-item-avarias', '.edit-item-scrap', '.edit-item-avint'].forEach(selector => {
+            const input = row.querySelector(selector);
+            if (input) {
+                input.addEventListener('input', () => recalcItemRow(row));
+            }
+        });
+        const removeButton = row.querySelector('.edit-item-remove-btn');
+        if (removeButton) {
+            removeButton.addEventListener('click', () => {
+                row.remove();
+            });
+        }
+    }
+
+    modal.querySelectorAll('.edit-item-row').forEach(row => attachItemListeners(row));
+
+    const addRowButton = modal.querySelector('.add-item-row-btn');
+    if (addRowButton) {
+        addRowButton.addEventListener('click', () => {
+            const tbody = modal.querySelector('.edit-items-body');
+            const row = document.createElement('tr');
+            row.className = 'edit-item-row';
+            row.innerHTML = `
+                <td class="border border-gray-300 p-2"><input type="text" class="table-input edit-item-code" value=""></td>
+                <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-previsto" value="0" min="0"></td>
+                <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-realizado" value="0" min="0"></td>
+                <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-faltas" value="0" readonly></td>
+                <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-sobras" value="0" readonly></td>
+                <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-avarias" value="0" min="0"></td>
+                <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-scrap" value="0" min="0"></td>
+                <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-avint" value="0" min="0"></td>
+                <td class="border border-gray-300 p-2"><input type="number" class="table-input edit-item-bons" value="0" readonly></td>
+                <td class="border border-gray-300 p-2 text-center"><button type="button" class="edit-item-remove-btn text-red-600">✕</button></td>
+            `;
+            tbody.appendChild(row);
+            attachItemListeners(row);
+        });
+    }
+
+    const saveButton = modal.querySelector('.modal-save-btn');
+    if (saveButton) {
+        saveButton.addEventListener('click', async () => {
+            const updatedHygiene = {};
+            hygieneEntries.forEach(([key]) => {
+                const safeKey = key.replace(/\s+/g, '_').toLowerCase();
+                const selected = modal.querySelector(`input[name="${safeKey}"]:checked`);
+                updatedHygiene[key] = selected ? selected.value : 'N/A';
+            });
+            const updatedNote = modal.querySelector('#adminHygieneObservation')?.value.trim() || '';
+            const updatedObservations = modal.querySelector('#adminObservations')?.value.trim() || '';
+            const updatedItems = [];
+            modal.querySelectorAll('.edit-item-row').forEach(row => {
+                const code = row.querySelector('.edit-item-code')?.value || '';
+                const previsto = parseInt(row.querySelector('.edit-item-previsto')?.value, 10) || 0;
+                const realizado = parseInt(row.querySelector('.edit-item-realizado')?.value, 10) || 0;
+                const avarias = parseInt(row.querySelector('.edit-item-avarias')?.value, 10) || 0;
+                const scrap = parseInt(row.querySelector('.edit-item-scrap')?.value, 10) || 0;
+                const avariasInternas = parseInt(row.querySelector('.edit-item-avint')?.value, 10) || 0;
+                const faltas = parseInt(row.querySelector('.edit-item-faltas')?.value, 10) || Math.max(previsto - realizado, 0);
+                const sobras = parseInt(row.querySelector('.edit-item-sobras')?.value, 10) || Math.max(realizado - previsto, 0);
+                const bons = parseInt(row.querySelector('.edit-item-bons')?.value, 10) || Math.max(realizado - (avarias + scrap + avariasInternas), 0);
+                updatedItems.push({ code, previsto, realizado, faltas, sobras, avarias, scrap, avariasInternas, bons });
+            });
+
+            const updatedChecklist = {
+                operationType: modal.querySelector('#adminOperationType')?.value || checklist.operationType,
+                nfNumber: modal.querySelector('#adminNfNumber')?.value || '',
+                dtNumber: modal.querySelector('#adminDtNumber')?.value || '',
+                driverName: modal.querySelector('#adminDriverName')?.value || '',
+                placaCavalo: modal.querySelector('#adminPlacaCavalo')?.value || '',
+                placaCarreta1: modal.querySelector('#adminPlacaCarreta1')?.value || '',
+                transportadora: modal.querySelector('#adminTransportadora')?.value || '',
+                origem: modal.querySelector('#adminOrigem')?.value || '',
+                doca: modal.querySelector('#adminDoca')?.value || '',
+                statusLacre: modal.querySelector('#adminStatusLacre')?.value || '',
+                lacre1: modal.querySelector('#adminLacre1')?.value || '',
+                lacre2: modal.querySelector('#adminLacre2')?.value || '',
+                placaCarreta2: modal.querySelector('#adminPlacaCarreta2')?.value || '',
+                totalPbr: parseInt(modal.querySelector('#adminTotalPbr')?.value, 10) || 0,
+                checkinTime: modal.querySelector('#adminCheckinTime')?.value || checklist.checkinTime,
+                hygiene: updatedHygiene,
+                hygieneNote: updatedNote,
+                observations: updatedObservations,
+                items: updatedItems,
+                totalFardos: updatedItems.reduce((sum, item) => sum + item.previsto, 0),
+                avariados: updatedItems.reduce((sum, item) => sum + item.avarias, 0),
+                scrap: updatedItems.reduce((sum, item) => sum + item.scrap, 0),
+                avariasInternas: updatedItems.reduce((sum, item) => sum + item.avariasInternas, 0),
+                totalFaltas: updatedItems.reduce((sum, item) => sum + item.faltas, 0),
+                totalSobra: updatedItems.reduce((sum, item) => sum + item.sobras, 0),
+                totalBonsGeral: updatedItems.reduce((sum, item) => sum + item.bons, 0)
+            };
+
+            try {
+                saveButton.disabled = true;
+                saveButton.textContent = 'Salvando...';
+                await updateChecklistDetails(checklist.id, updatedChecklist);
+                const index = allChecklists.findIndex(item => item.id === checklist.id);
+                if (index !== -1) {
+                    allChecklists[index] = {
+                        ...allChecklists[index],
+                        ...updatedChecklist
+                    };
+                }
+                updateMetrics();
+                renderTable();
+                alert('Checklist atualizado com sucesso.');
+                modal.remove();
+            } catch (err) {
+                console.error('Erro ao atualizar checklist:', err);
+                alert('Falha ao salvar alterações. Tente novamente.');
+                saveButton.disabled = false;
+                saveButton.textContent = 'Salvar';
+            }
+        });
+    }
+
+    document.body.appendChild(modal);
 }
 
 function closeDetailModal() {
@@ -611,16 +977,12 @@ async function deleteChecklistById(id) {
 }
 
 // ===== OUVINTES DE EVENTOS =====
-// Configura os ouvintes para as abas de filtro
+// Ouvinte para as abas de filtro
 document.querySelectorAll('.filter-tab').forEach(tab => {
     tab.addEventListener('click', function() {
-        // Remove classe active de todas as abas
         document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-        // Adiciona classe active na aba clicada
         this.classList.add('active');
-        // Atualiza o filtro atual
         currentFilter = this.dataset.filter;
-        // Re-renderiza a tabela
         renderTable();
     });
 });
@@ -746,5 +1108,18 @@ document.getElementById('exportBtn').addEventListener('click', () => {
 
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', () => {
-    showAuthenticatedAdmin();
+    showUnauthenticatedAdmin();
+
+    document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
+    document.getElementById('signOutBtn')?.addEventListener('click', handleSignOut);
+
+    if (window.firebaseAuth && window.firebaseOnAuthStateChanged) {
+        window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
+            if (user) {
+                showAuthenticatedAdmin();
+            } else {
+                showUnauthenticatedAdmin();
+            }
+        });
+    }
 });
