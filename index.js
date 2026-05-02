@@ -416,7 +416,7 @@ async function saveChecklist(event) {
 
     hygieneCriteria.forEach(item => {
         const selected = document.querySelector(`input[name="${item.key}"]:checked`);
-        checklistData.hygiene[item.label] = selected ? (selected.value === 'NC' ? 'NC' : 'C') : 'N/A';
+        checklistData.hygiene[item.label] = selected ? (selected.id.endsWith('nc') ? 'NC' : 'C') : 'N/A';
     });
 
     const itemRows = document.querySelectorAll('#itemTableBody tr');
