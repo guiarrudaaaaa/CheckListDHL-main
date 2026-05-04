@@ -327,6 +327,55 @@ function validateChecklist() {
     return true;
 }
 
+// ===== GERENCIAMENTO DE FOTOS =====
+// Array para armazenar imagens em Base64
+let photoDataUrls = Array(6).fill('');
+
+function clearPhotoPreview(index) {
+    const preview = document.getElementById(`photoPreview${index}`);
+    if (!preview) return;
+    preview.innerHTML = '<span class="text-xs text-slate-400">Toque para selecionar imagem</span>';
+}
+
+async function handlePhotoChange(event, index) {
+    const input = event.target;
+    const preview = document.getElementById(`photoPreview${index}`);
+    const message = document.getElementById('photoUploadMessage');
+    if (!input.files[0] || !preview) return;
+
+    try {
+        const file = input.files[0];
+        // Valida o tipo de arquivo
+        if (!file.type.startsWith('image/')) {
+            message.textContent = 'Por favor, selecione um arquivo de imagem válido.';
+            clearPhotoPreview(index);
+            return;
+        }
+        // Lê o arquivo como Data URL
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            photoDataUrls[index - 1] = dataUrl;
+            preview.innerHTML = `<img src="${dataUrl}" alt="Foto ${index}" class="photo-preview-img">`;
+            message.textContent = '';
+        };
+        reader.readAsDataURL(file);
+    } catch (err) {
+        console.error('Erro ao processar foto:', err);
+        message.textContent = 'Não foi possível carregar a imagem. Tente novamente.';
+        input.value = '';
+    }
+}
+
+function clearAllPhotoPreviews() {
+    photoDataUrls = Array(6).fill('');
+    for (let i = 1; i <= 6; i += 1) {
+        clearPhotoPreview(i);
+        const input = document.getElementById(`photoInput${i}`);
+        if (input) input.value = '';
+    }
+}
+
 // Código relacionado a fotos foi removido para reduzir custos de storage
 
 //             clearPhotoPreview(index);
@@ -411,7 +460,8 @@ async function saveChecklist(event) {
         totalBonsGeral: parseInt(document.getElementById('totalBonsGeral')?.innerText) || 0,
         observations: document.getElementById('cargoObservations')?.value || '',
         driverSignature: getSignatureData(document.getElementById('driverSignatureCanvas')),
-        checkerSignature: getSignatureData(document.getElementById('checkerSignatureCanvas'))
+        checkerSignature: getSignatureData(document.getElementById('checkerSignatureCanvas')),
+        photos: photoDataUrls.filter(photo => photo !== '')
     };
 
     hygieneCriteria.forEach(item => {
@@ -466,7 +516,7 @@ async function saveChecklist(event) {
 
         showFormAlert('success', 'Checklist enviado para o painel admin com sucesso!');
         document.getElementById('mainChecklist').reset();
-        // clearAllPhotoPreviews(); // Esta linha já foi comentada em um passo anterior
+        clearAllPhotoPreviews();
         clearSignature('driverSignatureCanvas');
         clearSignature('checkerSignatureCanvas');
         auditAll();

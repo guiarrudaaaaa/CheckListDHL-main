@@ -885,7 +885,10 @@ function openChecklistEditor(checklist) {
                 avariasInternas: updatedItems.reduce((sum, item) => sum + item.avariasInternas, 0),
                 totalFaltas: updatedItems.reduce((sum, item) => sum + item.faltas, 0),
                 totalSobra: updatedItems.reduce((sum, item) => sum + item.sobras, 0),
-                totalBonsGeral: updatedItems.reduce((sum, item) => sum + item.bons, 0)
+                totalBonsGeral: updatedItems.reduce((sum, item) => sum + item.bons, 0),
+                photos: checklist.photos || [],
+                driverSignature: checklist.driverSignature,
+                checkerSignature: checklist.checkerSignature
             };
 
             try {
