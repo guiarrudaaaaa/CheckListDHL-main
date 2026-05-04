@@ -233,48 +233,66 @@
 
                 <div id="photoUploadMessage" class="text-red-600 text-sm mb-4"></div>
                 <div class="photo-upload-grid">
-                    <label class="photo-upload-card" for="photoInput1">
+                    <div class="photo-upload-card">
                         <div class="photo-preview" id="photoPreview1">
                             <span class="text-xs text-slate-400">Toque para selecionar imagem</span>
                         </div>
-                        <input id="photoInput1" class="photo-input" type="file" accept="image/*" capture="environment" onchange="handlePhotoChange(event, 1)">
-                        <span class="photo-upload-button">Selecionar foto 1</span>
-                    </label>
-                    <label class="photo-upload-card" for="photoInput2">
+                        <input id="photoInput1" class="photo-input" type="file" accept="image/*" onchange="handlePhotoChange(event, 1)">
+                        <div class="photo-controls">
+                            <span class="photo-upload-button">Selecionar foto 1</span>
+                            <button type="button" class="photo-remove-btn" onclick="clearPhotoPreview(1)" style="display: none;">✕</button>
+                        </div>
+                    </div>
+                    <div class="photo-upload-card">
                         <div class="photo-preview" id="photoPreview2">
                             <span class="text-xs text-slate-400">Toque para selecionar imagem</span>
                         </div>
-                        <input id="photoInput2" class="photo-input" type="file" accept="image/*" capture="environment" onchange="handlePhotoChange(event, 2)">
-                        <span class="photo-upload-button">Selecionar foto 2</span>
-                    </label>
-                    <label class="photo-upload-card" for="photoInput3">
+                        <input id="photoInput2" class="photo-input" type="file" accept="image/*" onchange="handlePhotoChange(event, 2)">
+                        <div class="photo-controls">
+                            <span class="photo-upload-button">Selecionar foto 2</span>
+                            <button type="button" class="photo-remove-btn" onclick="clearPhotoPreview(2)" style="display: none;">✕</button>
+                        </div>
+                    </div>
+                    <div class="photo-upload-card">
                         <div class="photo-preview" id="photoPreview3">
                             <span class="text-xs text-slate-400">Toque para selecionar imagem</span>
                         </div>
-                        <input id="photoInput3" class="photo-input" type="file" accept="image/*" capture="environment" onchange="handlePhotoChange(event, 3)">
-                        <span class="photo-upload-button">Selecionar foto 3</span>
-                    </label>
-                    <label class="photo-upload-card" for="photoInput4">
+                        <input id="photoInput3" class="photo-input" type="file" accept="image/*" onchange="handlePhotoChange(event, 3)">
+                        <div class="photo-controls">
+                            <span class="photo-upload-button">Selecionar foto 3</span>
+                            <button type="button" class="photo-remove-btn" onclick="clearPhotoPreview(3)" style="display: none;">✕</button>
+                        </div>
+                    </div>
+                    <div class="photo-upload-card">
                         <div class="photo-preview" id="photoPreview4">
                             <span class="text-xs text-slate-400">Toque para selecionar imagem</span>
                         </div>
-                        <input id="photoInput4" class="photo-input" type="file" accept="image/*" capture="environment" onchange="handlePhotoChange(event, 4)">
-                        <span class="photo-upload-button">Selecionar foto 4</span>
-                    </label>
-                    <label class="photo-upload-card" for="photoInput5">
+                        <input id="photoInput4" class="photo-input" type="file" accept="image/*" onchange="handlePhotoChange(event, 4)">
+                        <div class="photo-controls">
+                            <span class="photo-upload-button">Selecionar foto 4</span>
+                            <button type="button" class="photo-remove-btn" onclick="clearPhotoPreview(4)" style="display: none;">✕</button>
+                        </div>
+                    </div>
+                    <div class="photo-upload-card">
                         <div class="photo-preview" id="photoPreview5">
                             <span class="text-xs text-slate-400">Toque para selecionar imagem</span>
                         </div>
-                        <input id="photoInput5" class="photo-input" type="file" accept="image/*" capture="environment" onchange="handlePhotoChange(event, 5)">
-                        <span class="photo-upload-button">Selecionar foto 5</span>
-                    </label>
-                    <label class="photo-upload-card" for="photoInput6">
+                        <input id="photoInput5" class="photo-input" type="file" accept="image/*" onchange="handlePhotoChange(event, 5)">
+                        <div class="photo-controls">
+                            <span class="photo-upload-button">Selecionar foto 5</span>
+                            <button type="button" class="photo-remove-btn" onclick="clearPhotoPreview(5)" style="display: none;">✕</button>
+                        </div>
+                    </div>
+                    <div class="photo-upload-card">
                         <div class="photo-preview" id="photoPreview6">
                             <span class="text-xs text-slate-400">Toque para selecionar imagem</span>
                         </div>
-                        <input id="photoInput6" class="photo-input" type="file" accept="image/*" capture="environment" onchange="handlePhotoChange(event, 6)">
-                        <span class="photo-upload-button">Selecionar foto 6</span>
-                    </label>
+                        <input id="photoInput6" class="photo-input" type="file" accept="image/*" onchange="handlePhotoChange(event, 6)">
+                        <div class="photo-controls">
+                            <span class="photo-upload-button">Selecionar foto 6</span>
+                            <button type="button" class="photo-remove-btn" onclick="clearPhotoPreview(6)" style="display: none;">✕</button>
+                        </div>
+                    </div>
                 </div>
             </section>
 

@@ -333,8 +333,16 @@ let photoDataUrls = Array(6).fill('');
 
 function clearPhotoPreview(index) {
     const preview = document.getElementById(`photoPreview${index}`);
+    const input = document.getElementById(`photoInput${index}`);
+    const removeBtn = document.querySelector(`.photo-upload-card:nth-child(${index}) .photo-remove-btn`);
+    
     if (!preview) return;
+    
     preview.innerHTML = '<span class="text-xs text-slate-400">Toque para selecionar imagem</span>';
+    photoDataUrls[index - 1] = '';
+    
+    if (input) input.value = '';
+    if (removeBtn) removeBtn.style.display = 'none';
 }
 
 async function handlePhotoChange(event, index) {
@@ -351,13 +359,60 @@ async function handlePhotoChange(event, index) {
             clearPhotoPreview(index);
             return;
         }
+        
+        // Limita o tamanho da imagem a 500KB
+        const maxSize = 500 * 1024;
+        if (file.size > maxSize) {
+            message.textContent = 'Imagem muito grande (máx. 500KB). A imagem será comprimida.';
+        }
+        
         // Lê o arquivo como Data URL
         const reader = new FileReader();
         reader.onload = (e) => {
-            const dataUrl = e.target.result;
-            photoDataUrls[index - 1] = dataUrl;
-            preview.innerHTML = `<img src="${dataUrl}" alt="Foto ${index}" class="photo-preview-img">`;
-            message.textContent = '';
+            let dataUrl = e.target.result;
+            
+            // Se a imagem for muito grande, redimensiona
+            if (dataUrl.length > maxSize * 1.34) { // Base64 é ~33% maior que binary
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // Redimensiona mantendo proporção
+                    const maxDim = 1024;
+                    if (width > height && width > maxDim) {
+                        height = (height * maxDim) / width;
+                        width = maxDim;
+                    } else if (height > maxDim) {
+                        width = (width * maxDim) / height;
+                        height = maxDim;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+                    
+                    photoDataUrls[index - 1] = dataUrl;
+                    preview.innerHTML = `<img src="${dataUrl}" alt="Foto ${index}" class="photo-preview-img">`;
+                    message.textContent = 'Imagem carregada e comprimida com sucesso.';
+                    
+                    // Mostra o botão de remover
+                    const removeBtn = document.querySelector(`.photo-upload-card:nth-child(${index}) .photo-remove-btn`);
+                    if (removeBtn) removeBtn.style.display = 'block';
+                };
+                img.src = e.target.result;
+            } else {
+                photoDataUrls[index - 1] = dataUrl;
+                preview.innerHTML = `<img src="${dataUrl}" alt="Foto ${index}" class="photo-preview-img">`;
+                message.textContent = '';
+                
+                // Mostra o botão de remover
+                const removeBtn = document.querySelector(`.photo-upload-card:nth-child(${index}) .photo-remove-btn`);
+                if (removeBtn) removeBtn.style.display = 'block';
+            }
         };
         reader.readAsDataURL(file);
     } catch (err) {
@@ -375,29 +430,6 @@ function clearAllPhotoPreviews() {
         if (input) input.value = '';
     }
 }
-
-// Código relacionado a fotos foi removido para reduzir custos de storage
-
-//             clearPhotoPreview(index);
-//             return;
-//         }
-
-//         photoDataUrls[index - 1] = dataUrl;
-//         preview.innerHTML = `<img src="${dataUrl}" alt="Foto ${index}" class="photo-preview-img">`;
-//     } catch (err) {
-//         console.error('Erro ao processar foto:', err);
-//         message.textContent = 'Não foi possível carregar a imagem. Tente novamente.';
-//         input.value = '';
-
-
-// function clearAllPhotoPreviews() {
-//     photoDataUrls = Array(6).fill('');
-//     for (let i = 1; i <= 6; i += 1) {
-//         clearPhotoPreview(i);
-//         const input = document.getElementById(`photoInput${i}`);
-//         if (input) input.value = '';
-//     }
-// }
 
 function showChecklistMain() {
     document.getElementById('mainShell')?.classList.remove('hidden');
@@ -417,6 +449,18 @@ initSignatureCanvas('checkerSignatureCanvas');
 
 document.addEventListener('DOMContentLoaded', () => {
     showChecklistMain();
+    
+    // Adicionar event listeners para os botões de upload de foto
+    for (let i = 1; i <= 6; i++) {
+        const uploadBtn = document.querySelector(`.photo-upload-card:nth-child(${i}) .photo-upload-button`);
+        const input = document.getElementById(`photoInput${i}`);
+        
+        if (uploadBtn && input) {
+            uploadBtn.addEventListener('click', () => {
+                input.click();
+            });
+        }
+    }
 });
 
 // ===== SALVAMENTO DO CHECKLIST =====

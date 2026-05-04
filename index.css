@@ -134,7 +134,6 @@ body {
     border-radius: 22px;
     padding: 0.85rem;
     background: #fff;
-    cursor: pointer;
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
@@ -186,6 +185,40 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.08em;
     background: #fafafa;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.photo-upload-button:hover {
+    background: #f3f4f6;
+}
+
+.photo-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.photo-remove-btn {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #ef4444;
+    color: white;
+    border: none;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.photo-remove-btn:hover {
+    background: #dc2626;
 }
 
 @media (max-width: 900px) {
