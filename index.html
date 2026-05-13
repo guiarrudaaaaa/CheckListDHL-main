@@ -51,9 +51,9 @@
 
             <!-- ===== SEÇÃO 1: IDENTIFICAÇÃO GERAL ===== -->
             <!-- Campos para informações básicas da operação -->
-            <section class="glass-card p-8">
+            <section id="identificationSection" class="glass-card p-8">
                 <div class="flex items-center gap-3 mb-6">
-                    <span class="w-8 h-8 dhl-red text-white flex items-center justify-center rounded-lg font-black">01</span> <!-- Número da seção -->
+                    <span class="w-8 h-8 dhl-red text-white flex items-center justify-center rounded-lg font-black section-number">01</span> <!-- Número da seção -->
                     <h2 class="text-black font-bold uppercase">Identificação Geral</h2> <!-- Título da seção -->
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -119,9 +119,9 @@
 
             <!-- ===== SEÇÃO 2: HIGIENE E ESTRUTURA ===== -->
             <!-- Grid de critérios de higiene gerados dinamicamente -->
-            <section class="glass-card p-8">
+            <section id="hygieneSection" class="glass-card p-8">
                 <div class="flex items-center gap-3 mb-6">
-                    <span class="w-8 h-8 dhl-red text-white flex items-center justify-center rounded-lg font-black">02</span> <!-- Número da seção -->
+                    <span class="w-8 h-8 dhl-red text-white flex items-center justify-center rounded-lg font-black section-number">02</span> <!-- Número da seção -->
                     <h2 class="text-black font-bold uppercase">Higiene e Estrutura</h2> <!-- Título da seção -->
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="hygieneGrid"></div> <!-- Container para os critérios -->
@@ -132,11 +132,11 @@
             </section>
 
 <!-- ===== SEÇÃO 3: CONFERÊNCIA TÉCNICA DE ITENS (TRECHO CORRIGIDO) ===== -->
-<section class="glass-card p-0 overflow-hidden border-l-4 border-dhl-yellow">
+<section id="technicalConferenceSection" class="glass-card p-0 overflow-hidden border-l-4 border-dhl-yellow">
     <div class="max-w-[1200px] mx-auto">
         <div class="bg-white p-5 flex flex-wrap justify-between items-center gap-3 border-b border-muted">
             <div class="flex items-center gap-3">
-                <span class="w-8 h-8 dhl-yellow text-black flex items-center justify-center rounded-lg font-black italic">03</span>
+                <span class="w-8 h-8 dhl-yellow text-black flex items-center justify-center rounded-lg font-black italic section-number">03</span>
                 <h2 class="text-black font-bold uppercase">Conferência Técnica de Itens</h2>
             </div>
             <button type="button" onclick="addItemRow({ focus: true })" class="dhl-yellow text-black px-6 py-2 rounded-xl text-xs font-black uppercase shadow-lg">＋ Item</button>
@@ -198,9 +198,9 @@
 </section>
 
             <!-- ===== SEÇÃO 4: CONTROLE DE PALETES ===== -->
-            <section class="glass-card p-8">
+            <section id="palletsSection" class="glass-card p-8">
                 <div class="flex items-center gap-3 mb-6">
-                    <span class="w-8 h-8 dhl-yellow text-black flex items-center justify-center rounded-lg font-black italic">04</span>
+                    <span class="w-8 h-8 dhl-yellow text-black flex items-center justify-center rounded-lg font-black italic section-number">04</span>
                     <h2 class="text-black font-bold uppercase">Controle de Paletes (PBR)</h2>
                 </div>
                 <div class="grid grid-cols-1 gap-6 mb-2">
@@ -213,9 +213,9 @@
 
             <!-- ===== SEÇÃO 5: OBSERVAÇÕES DA CARGA ===== -->
             <!-- Campo de texto para observações adicionais -->
-            <section class="glass-card p-8">
+            <section id="observationsSection" class="glass-card p-8">
                 <div class="flex items-center gap-3 mb-6">
-                    <span class="w-8 h-8 dhl-red text-white flex items-center justify-center rounded-lg font-black">05</span>
+                    <span class="w-8 h-8 dhl-red text-white flex items-center justify-center rounded-lg font-black section-number">05</span>
                     <h2 class="text-black font-bold uppercase">Observações da Carga</h2>
                 </div>
                 <textarea id="cargoObservations" class="w-full h-[80px] bg-white border border-black rounded-xl p-4 text-xs font-semibold outline-none focus-ring-dhl-red" placeholder="Lote, detalhes de avaria, etc..."></textarea>
@@ -223,9 +223,9 @@
 
             <!-- ===== SEÇÃO 06: FOTOS DO CHECKLIST ===== -->
             <!-- Upload local de até 6 fotos armazenadas em Base64 no Firestore -->
-            <section class="glass-card p-8">
+            <section id="photosSection" class="glass-card p-8">
                 <div class="flex items-center gap-3 mb-5">
-                    <span class="w-8 h-8 dhl-red text-white flex items-center justify-center rounded-lg font-black">06</span>
+                    <span class="w-8 h-8 dhl-red text-white flex items-center justify-center rounded-lg font-black section-number">06</span>
                     <div>
                         <h2 class="text-black font-bold uppercase">Fotos do Checklist</h2>
                     </div>
@@ -296,12 +296,12 @@
                 </div>
             </section>
 
-            <!-- ===== SEÇÃO 07: LACRES E ASSINATURAS ===== -->
-            <!-- Campos para lacres e áreas de assinatura -->
-            <section class="glass-card p-8">
+               <!-- ===== SEÇÃO 07: ASSINATURAS ===== -->
+            <!-- Canvas para assinaturas digitais do motorista e conferente -->
+            <section id="signaturesSection" class="glass-card p-8">
                 <div class="flex items-center gap-3 mb-6">
-                    <span class="w-8 h-8 dhl-red text-white flex items-center justify-center rounded-lg font-black">07</span>
-                    <h2 class="text-black font-bold uppercase">Lacres e Assinaturas</h2>
+                    <span class="w-8 h-8 dhl-red text-white flex items-center justify-center rounded-lg font-black section-number">07</span>
+                    <h2 class="text-black font-bold uppercase">Assinaturas</h2>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <!-- Campos para lacres -->

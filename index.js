@@ -2,6 +2,34 @@
 setInterval(() => updateClock('liveClock'), 1000);
 updateClock('liveClock');
 
+// Lógica para mostrar/esconder Conferência Técnica e renumeração baseado no Fluxo
+document.getElementById('operationTypeSelect')?.addEventListener('change', function() {
+    const technicalSection = document.getElementById('technicalConferenceSection');
+    if (this.value === 'OUTBOUND') {
+        technicalSection?.classList.add('hidden');
+    } else {
+        technicalSection?.classList.remove('hidden');
+    }
+    updateSectionNumbers();
+});
+
+function updateSectionNumbers() {
+    const sections = document.querySelectorAll('section.glass-card');
+    let currentNumber = 1;
+    sections.forEach(section => {
+        if (!section.classList.contains('hidden')) {
+            const numberSpan = section.querySelector('.section-number');
+            if (numberSpan) {
+                numberSpan.textContent = currentNumber.toString().padStart(2, '0');
+                currentNumber++;
+            }
+        }
+    });
+}
+
+// Inicializa a numeração ao carregar
+document.addEventListener('DOMContentLoaded', updateSectionNumbers);
+
 function resizeSignatureCanvas(canvas) {
     if (!canvas) return;
     const ratio = window.devicePixelRatio || 1;

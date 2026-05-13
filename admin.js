@@ -402,7 +402,7 @@ function viewChecklistDetails(index) {
                 ` : ''}
 
                 <!-- Itens -->
-                <div class="bg-yellow-50 p-4 rounded-lg">
+                <div class="bg-yellow-50 p-4 rounded-lg ${checklist.operationType === 'OUT' ? 'hidden' : ''}">
                     <h3 class="font-bold text-lg mb-3">📦 Itens Conferidos</h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm border-collapse border border-gray-300">
@@ -639,7 +639,7 @@ function openChecklistEditor(checklist) {
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <label class="block text-sm font-semibold text-slate-700">
                             Fluxo
-                            <select id="adminOperationType" class="input-field w-full mt-2">
+                            <select id="adminOperationType" class="input-field w-full mt-2" onchange="document.getElementById('adminTechnicalSection')?.classList.toggle('hidden', this.value === 'OUT')">
                                 <option value="IN" ${checklist.operationType === 'IN' ? 'selected' : ''}>INBOUND</option>
                                 <option value="OUT" ${checklist.operationType === 'OUT' ? 'selected' : ''}>OUTBOUND</option>
                             </select>
@@ -704,7 +704,7 @@ function openChecklistEditor(checklist) {
                         </label>
                     </div>
                 </div>
-                <div class="bg-yellow-50 p-4 rounded-lg">
+                <div id="adminTechnicalSection" class="bg-yellow-50 p-4 rounded-lg ${checklist.operationType === 'OUT' ? 'hidden' : ''}">
                     <h3 class="font-bold text-lg mb-3">📦 Itens Conferidos</h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm border-collapse border border-gray-300">
