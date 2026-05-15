@@ -7,8 +7,10 @@ document.getElementById('operationTypeSelect')?.addEventListener('change', funct
     const technicalSection = document.getElementById('technicalConferenceSection');
     if (this.value === 'OUTBOUND') {
         technicalSection?.classList.add('hidden');
+        toggleTechnicalSectionInputs(false);
     } else {
         technicalSection?.classList.remove('hidden');
+        toggleTechnicalSectionInputs(true);
     }
     updateSectionNumbers();
 });
@@ -24,6 +26,17 @@ function updateSectionNumbers() {
                 currentNumber++;
             }
         }
+    });
+}
+
+function toggleTechnicalSectionInputs(enabled) {
+    const technicalSection = document.getElementById('technicalConferenceSection');
+    if (!technicalSection) return;
+    const controls = technicalSection.querySelectorAll('input, select, textarea, button');
+    controls.forEach(control => {
+        if (control.type === 'submit') return;
+        if (control.matches('.photo-upload-button')) return;
+        control.disabled = !enabled;
     });
 }
 
@@ -477,6 +490,8 @@ initSignatureCanvas('checkerSignatureCanvas');
 
 document.addEventListener('DOMContentLoaded', () => {
     showChecklistMain();
+    const opType = document.getElementById('operationTypeSelect')?.value;
+    toggleTechnicalSectionInputs(opType !== 'OUTBOUND');
     
     // Adicionar event listeners para os botões de upload de foto
     for (let i = 1; i <= 6; i++) {
