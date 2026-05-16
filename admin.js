@@ -35,6 +35,7 @@ async function loadChecklists() {
         renderTable();
     } catch (err) {
         console.error('Erro ao carregar relatório Firebase:', err);
+        showAdminError('Não foi possível carregar os checklists. Verifique sua conexão e atualize a página.');
     }
 }
 
@@ -72,6 +73,7 @@ function subscribeChecklists() {
         renderTable();
     }, (err) => {
         console.error('Erro no listener de checklists:', err);
+        showAdminError('Não foi possível conectar ao Firestore. O painel será recarregado em modo offline.');
         loadChecklists();
     });
 }
@@ -159,11 +161,24 @@ function showAuthError(message) {
     alert.classList.remove('hidden');
 }
 
+function showAdminError(message) {
+    const alert = document.getElementById('adminError');
+    if (!alert) return;
+    if (!message) {
+        alert.classList.add('hidden');
+        alert.textContent = '';
+        return;
+    }
+    alert.textContent = message;
+    alert.classList.remove('hidden');
+}
+
 function showAuthenticatedAdmin() {
     document.getElementById('authScreen')?.classList.add('hidden');
     document.getElementById('adminMain')?.classList.remove('hidden');
     document.getElementById('signOutBtn')?.classList.remove('hidden');
     showAuthError('');
+    showAdminError('');
     subscribeChecklists();
 }
 
@@ -354,6 +369,7 @@ function viewChecklistDetails(index) {
                     </div>
                     <div class="flex gap-2">
                         <button type="button" class="modal-edit-btn btn-secondary">Editar</button>
+                        <button type="button" class="modal-export-btn btn-secondary">Exportar</button>
                         <button type="button" class="modal-close text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
                     </div>
                 </div>
@@ -552,7 +568,26 @@ function viewChecklistDetails(index) {
         });
     }
 
+    const exportButton = modal.querySelector('.modal-export-btn');
+    if (exportButton) {
+        exportButton.addEventListener('click', () => exportChecklistDetail(checklist));
+    }
+
     document.body.appendChild(modal);
+    // Accessibility: enable simple focus trap and role attributes
+    try {
+        window.components = window.components || {};
+        if (window.components.modal && typeof window.components.modal.enableModalAccessibility === 'function') {
+            window.components.modal.enableModalAccessibility(modal, `Detalhes Checklist ${escapeHtml(checklist.id || '')}`);
+        } else {
+            // Best-effort accessibility attributes
+            modal.setAttribute('role', 'dialog');
+            modal.setAttribute('aria-modal', 'true');
+            modal.setAttribute('aria-label', `Detalhes Checklist ${escapeHtml(checklist.id || '')}`);
+        }
+    } catch (e) {
+        console.warn('Não foi possível ativar melhorias de acessibilidade no modal:', e);
+    }
 }
 
 function calculateTotalBons(checklist) {
@@ -778,6 +813,20 @@ function openChecklistEditor(checklist) {
     const cancelButton = modal.querySelector('.modal-cancel-btn');
     if (cancelButton) {
         cancelButton.addEventListener('click', () => modal.remove());
+    }
+
+    // Accessibility: enable modal role and focus trap
+    try {
+        window.components = window.components || {};
+        if (window.components.modal && typeof window.components.modal.enableModalAccessibility === 'function') {
+            window.components.modal.enableModalAccessibility(modal, `Editar Checklist ${escapeHtml(checklist.id || '')}`);
+        } else {
+            modal.setAttribute('role', 'dialog');
+            modal.setAttribute('aria-modal', 'true');
+            modal.setAttribute('aria-label', `Editar Checklist ${escapeHtml(checklist.id || '')}`);
+        }
+    } catch (err) {
+        console.warn('Não foi possível ativar acessibilidade do modal de edição:', err);
     }
 
     function recalcItemRow(row) {
@@ -1021,6 +1070,147 @@ function getVisibleChecklists() {
     return filtered;
 }
 
+function sanitizeSheetName(name) {
+    const cleaned = String(name || '')
+        .replace(/[\\\/\?\*\[\]:]/g, '')
+        .replace(/\s+/g, '_')
+        .substring(0, 25);
+    return cleaned || 'Checklist';
+}
+
+function getChecklistSheetName(checklist, index) {
+    const typeLabel = checklist.operationType === 'IN' ? 'IN' : checklist.operationType === 'OUT' ? 'OUT' : 'GERAL';
+    const dt = String(checklist.dtNumber || checklist.dt_number || '').replace(/\s+/g, '_').substring(0, 12);
+    const base = dt ? `${typeLabel}_${dt}` : `${typeLabel}_${String(checklist.id || '').slice(0, 8)}`;
+    return sanitizeSheetName(`${base}_${index}`);
+}
+
+function buildChecklistDetailSheetData(checklist) {
+    const hygiene = normalizeHygieneEntries(checklist.hygiene || {});
+    const hygieneEntries = Object.entries(hygiene);
+    const totalBons = checklist.totalBonsGeral || calculateTotalBons(checklist);
+    const data = [
+        ['Checklist', checklist.operationType === 'IN' ? 'INBOUND' : checklist.operationType === 'OUT' ? 'OUTBOUND' : 'GERAL'],
+        ['ID', checklist.id || ''],
+        ['DT', formatValue(checklist.dtNumber)],
+        ['NF', formatValue(checklist.nfNumber)],
+        ['Motorista', formatValue(checklist.driverName)],
+        ['Cavalo', formatValue(checklist.placaCavalo)],
+        ['Carreta', formatValue(checklist.placaCarreta1)],
+        ['Transportadora', formatValue(checklist.transportadora)],
+        ['Origem', formatValue(checklist.origem)],
+        ['Doca', formatValue(checklist.doca)],
+        ['Total Fardos', checklist.totalFardos || 0],
+        ['Avariados', checklist.avariados || 0],
+        ['Scrap', checklist.scrap || 0],
+        ['Avarias Internas', checklist.avariasInternas || 0],
+        ['Total Bons', totalBons],
+        ['Check-in', formatValue(checklist.checkinTime)],
+        ['Status Lacre', formatValue(checklist.statusLacre)],
+        ['Lacre 1', formatValue(checklist.lacre1)],
+        ['Lacre 2', formatValue(checklist.lacre2)],
+        ['Observações', formatValue(checklist.observations)]
+    ];
+
+    data.push([]);
+    if (hygieneEntries.length) {
+        data.push(['Higiene', 'Status']);
+        hygieneEntries.forEach(([key, value]) => data.push([key, value]));
+        data.push([]);
+        data.push(['Observação de Higiene', formatValue(checklist.hygieneNote || checklist.hygieneObservation || '')]);
+        data.push([]);
+    }
+
+    if (String(checklist.operationType || '').toUpperCase() === 'IN') {
+        data.push(['Itens', 'Previsto', 'Realizado', 'Faltas', 'Sobras', 'Avarias', 'Scrap', 'Av. Interna', 'Bons']);
+        const items = Array.isArray(checklist.items) ? checklist.items : [];
+        if (items.length) {
+            items.forEach(item => {
+                data.push([
+                    formatValue(item.code),
+                    item.previsto || 0,
+                    item.realizado || 0,
+                    item.faltas || 0,
+                    item.sobras || 0,
+                    item.avarias || 0,
+                    item.scrap || 0,
+                    item.avariasInternas || 0,
+                    item.bons || 0
+                ]);
+            });
+        } else {
+            data.push(['Sem itens disponíveis']);
+        }
+        data.push([]);
+    }
+
+    const palletRows = Array.isArray(checklist.palletRows) ? checklist.palletRows : [];
+    if (palletRows.length) {
+        data.push(['Pallets', 'Fardos Totais', 'Fardos / Pallet']);
+        palletRows.forEach(row => {
+            data.push([
+                formatValue(row.code),
+                row.count || 0,
+                row.per || 0
+            ]);
+        });
+        data.push([]);
+    }
+
+    const sealEntries = checklist.seals && typeof checklist.seals === 'object'
+        ? Object.entries(checklist.seals).filter(([, value]) => value)
+        : [];
+    if (sealEntries.length) {
+        data.push(['Selos', 'Valor']);
+        sealEntries.forEach(([key, value]) => {
+            const label = key.replace(/seal/i, 'Selo ').trim();
+            data.push([label, formatValue(value)]);
+        });
+        data.push([]);
+    }
+
+    if (checklist.driverSignature || checklist.checkerSignature) {
+        data.push(['Assinaturas', 'Disponível']);
+        if (checklist.driverSignature) data.push(['Motorista', 'Sim']);
+        if (checklist.checkerSignature) data.push(['Conferente', 'Sim']);
+        data.push([]);
+    }
+
+    return data;
+}
+
+function exportChecklistDetail(checklist) {
+    if (!window.XLSX) {
+        alert('Biblioteca Excel não carregada. Atualize a página e tente novamente.');
+        return;
+    }
+
+    const workbook = XLSX.utils.book_new();
+    const detailData = buildChecklistDetailSheetData(checklist);
+    const worksheet = XLSX.utils.aoa_to_sheet(detailData);
+    worksheet['!cols'] = [
+        { wch: 22 },
+        { wch: 40 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 18 }
+    ];
+    const sheetName = getChecklistSheetName(checklist, 1);
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    const workbookArray = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([workbookArray], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `checklist_${sheetName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
 // Ouvinte para o botão "Exportar Excel"
 document.getElementById('exportBtn').addEventListener('click', () => {
     const visibleChecklists = getVisibleChecklists();
@@ -1099,6 +1289,7 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     ], { origin: `A${totalRowIndex}` });
 
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Checklists');
+
     const workbookArray = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([workbookArray], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);

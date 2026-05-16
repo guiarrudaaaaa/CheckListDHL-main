@@ -44,6 +44,9 @@ function toggleTechnicalSectionInputs(enabled) {
 document.addEventListener('DOMContentLoaded', updateSectionNumbers);
 
 function resizeSignatureCanvas(canvas) {
+    if (window.components?.signature?.resizeSignatureCanvas) {
+        return window.components.signature.resizeSignatureCanvas(canvas);
+    }
     if (!canvas) return;
     const ratio = window.devicePixelRatio || 1;
     const width = canvas.clientWidth;
@@ -61,6 +64,9 @@ function resizeSignatureCanvas(canvas) {
 }
 
 function clearSignature(canvasId) {
+    if (window.components?.signature?.clearSignature) {
+        return window.components.signature.clearSignature(canvasId);
+    }
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -71,14 +77,23 @@ function clearSignature(canvasId) {
 }
 
 function isCanvasBlank(canvas) {
+    if (window.components?.signature?.isCanvasBlank) {
+        return window.components.signature.isCanvasBlank(canvas);
+    }
     return !canvas || canvas.dataset.drawn !== 'true';
 }
 
 function getSignatureData(canvas) {
+    if (window.components?.signature?.getSignatureData) {
+        return window.components.signature.getSignatureData(canvas);
+    }
     return canvas && !isCanvasBlank(canvas) ? canvas.toDataURL('image/png') : '';
 }
 
 function initSignatureCanvas(canvasId) {
+    if (window.components?.signature?.initSignatureCanvas) {
+        return window.components.signature.initSignatureCanvas(canvasId);
+    }
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
     resizeSignatureCanvas(canvas);
@@ -149,6 +164,9 @@ function sanitizeNumber(input) {
 
 // Função para validar e sanitizar entrada antes de salvar
 function secureInputValidation() {
+    if (window.utils?.validation?.secureInputValidation) {
+        return window.utils.validation.secureInputValidation();
+    }
     // Sanitiza campos de texto
     const textInputs = document.querySelectorAll('input[type="text"], textarea');
     textInputs.forEach(input => {
@@ -170,6 +188,9 @@ function secureInputValidation() {
 }
 
 function showFormAlert(type, message) {
+    if (window.utils?.validation?.showFormAlert) {
+        return window.utils.validation.showFormAlert(type, message);
+    }
     const alertBox = document.getElementById('formAlert');
     if (!alertBox) return;
     alertBox.className = 'form-alert';
@@ -180,6 +201,9 @@ function showFormAlert(type, message) {
 }
 
 function clearFormAlert() {
+    if (window.utils?.validation?.clearFormAlert) {
+        return window.utils.validation.clearFormAlert();
+    }
     const alertBox = document.getElementById('formAlert');
     if (!alertBox) return;
     alertBox.className = 'form-alert hidden';
@@ -214,13 +238,12 @@ hygieneCriteria.forEach(item => {
 // ===== GERENCIAMENTO DE ITENS =====
 // Função para adicionar uma nova linha na tabela de itens
 function addItemRow({ focus = false } = {}) {
-    // Seleciona o corpo da tabela
+    if (window.components?.audit?.addItemRow) {
+        return window.components.audit.addItemRow({ focus });
+    }
     const tbody = document.getElementById('itemTableBody');
-    // Cria um novo elemento tr (linha)
     const tr = document.createElement('tr');
-    // Adiciona classe para hover
     tr.className = "hover:bg-slate-50";
-    // Define o HTML da linha com inputs para cada coluna
     tr.innerHTML = `
         <td><input type="number" class="table-input val-item-code text-center" placeholder="Cód." min="0" step="1" required></td> <!-- Código do item -->
         <td class="bg-blue-50/30"><input type="number" class="table-input val-previsto text-center" value="" min="0" step="1" required></td> <!-- Quantidade prevista -->
@@ -234,7 +257,6 @@ function addItemRow({ focus = false } = {}) {
         <td class="text-center"><button type="button" class="text-slate-300 hover:text-red-500 font-bold">✕</button></td> <!-- Botão remover -->
     `;
 
-    // Adiciona a linha ao corpo da tabela
     tbody.appendChild(tr);
 
     const inputs = tr.querySelectorAll('.val-previsto, .val-realizado, .val-avaria, .val-scrap, .val-avint');
@@ -258,9 +280,10 @@ function addItemRow({ focus = false } = {}) {
 // ===== FUNÇÕES DE AUDITORIA =====
 // Função para calcular faltas, sobras e totais para uma linha específica
 function audit(el) {
-    // Seleciona a linha do elemento
+    if (window.components?.audit?.audit) {
+        return window.components.audit.audit(el);
+    }
     const row = el.parentElement.parentElement;
-    // Obtém os valores dos inputs
     const prevInput = row.querySelector('.val-previsto');
     const realInput = row.querySelector('.val-realizado');
     const avInput = row.querySelector('.val-avaria');
@@ -281,22 +304,18 @@ function audit(el) {
         return;
     }
 
-    // Calcula a diferença (positivo = sobra, negativo = falta)
     const diff = real - prev;
-    // Define o valor de faltas (absoluto se negativo)
     row.querySelector('.res-falta').value = diff < 0 ? Math.abs(diff) : 0;
-    // Define o valor de sobras (se positivo) - não são contabilizadas nos bons
     row.querySelector('.res-sobra').value = diff > 0 ? diff : 0;
-    // Calcula total de itens bons: REALIZADO menos as perdas (avarias, scrap, av.int.)
-    // Sobras não afetam o total bons, apenas faltas e perdas.
     const bons = real - (av + sc + ai);
     row.querySelector('.res-bons').value = bons > 0 ? bons : 0;
-    // Atualiza os totais gerais
     auditAll();
 }
 
-// Função para calcular os totais gerais de todas as linhas (otimizada com cache de elementos)
 function auditAll() {
+    if (window.components?.audit?.auditAll) {
+        return window.components.audit.auditAll();
+    }
     const totalFaltasEl = document.getElementById('totalFaltas');
     const totalSobraEl = document.getElementById('totalSobra');
     const totalBonsEl = document.getElementById('totalBonsGeral');
@@ -373,54 +392,47 @@ function validateChecklist() {
 let photoDataUrls = Array(6).fill('');
 
 function clearPhotoPreview(index) {
+    if (window.components?.photoUploader?.clearPhotoPreview) {
+        return window.components.photoUploader.clearPhotoPreview(index, photoDataUrls);
+    }
     const preview = document.getElementById(`photoPreview${index}`);
     const input = document.getElementById(`photoInput${index}`);
     const removeBtn = document.querySelector(`.photo-upload-card:nth-child(${index}) .photo-remove-btn`);
-    
     if (!preview) return;
-    
     preview.innerHTML = '<span class="text-xs text-slate-400">Toque para selecionar imagem</span>';
     photoDataUrls[index - 1] = '';
-    
     if (input) input.value = '';
     if (removeBtn) removeBtn.style.display = 'none';
 }
 
 async function handlePhotoChange(event, index) {
+    if (window.components?.photoUploader?.handlePhotoChange) {
+        return window.components.photoUploader.handlePhotoChange(event, index, photoDataUrls);
+    }
     const input = event.target;
     const preview = document.getElementById(`photoPreview${index}`);
     const message = document.getElementById('photoUploadMessage');
     if (!input.files[0] || !preview) return;
-
     try {
         const file = input.files[0];
-        // Valida o tipo de arquivo
         if (!file.type.startsWith('image/')) {
             message.textContent = 'Por favor, selecione um arquivo de imagem válido.';
             clearPhotoPreview(index);
             return;
         }
-        
-        // Limita o tamanho da imagem a 500KB
-        const maxSize = 500 * 1024;
+        const maxSize = window.components?.photoUploader?.MAX_SIZE_BYTES || (300 * 1024);
         if (file.size > maxSize) {
-            message.textContent = 'Imagem muito grande (máx. 500KB). A imagem será comprimida.';
+            message.textContent = 'Imagem muito grande (máx. 300KB). A imagem será comprimida.';
         }
-        
-        // Lê o arquivo como Data URL
         const reader = new FileReader();
         reader.onload = (e) => {
             let dataUrl = e.target.result;
-            
-            // Se a imagem for muito grande, redimensiona
-            if (dataUrl.length > maxSize * 1.34) { // Base64 é ~33% maior que binary
+            if (dataUrl.length > maxSize * 1.34) {
                 const img = new Image();
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     let width = img.width;
                     let height = img.height;
-                    
-                    // Redimensiona mantendo proporção
                     const maxDim = 1024;
                     if (width > height && width > maxDim) {
                         height = (height * maxDim) / width;
@@ -429,18 +441,14 @@ async function handlePhotoChange(event, index) {
                         width = (width * maxDim) / height;
                         height = maxDim;
                     }
-                    
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
                     dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-                    
                     photoDataUrls[index - 1] = dataUrl;
                     preview.innerHTML = `<img src="${dataUrl}" alt="Foto ${index}" class="photo-preview-img">`;
                     message.textContent = 'Imagem carregada e comprimida com sucesso.';
-                    
-                    // Mostra o botão de remover
                     const removeBtn = document.querySelector(`.photo-upload-card:nth-child(${index}) .photo-remove-btn`);
                     if (removeBtn) removeBtn.style.display = 'block';
                 };
@@ -449,8 +457,6 @@ async function handlePhotoChange(event, index) {
                 photoDataUrls[index - 1] = dataUrl;
                 preview.innerHTML = `<img src="${dataUrl}" alt="Foto ${index}" class="photo-preview-img">`;
                 message.textContent = '';
-                
-                // Mostra o botão de remover
                 const removeBtn = document.querySelector(`.photo-upload-card:nth-child(${index}) .photo-remove-btn`);
                 if (removeBtn) removeBtn.style.display = 'block';
             }
@@ -464,6 +470,9 @@ async function handlePhotoChange(event, index) {
 }
 
 function clearAllPhotoPreviews() {
+    if (window.components?.photoUploader?.clearAllPhotoPreviews) {
+        return window.components.photoUploader.clearAllPhotoPreviews(photoDataUrls);
+    }
     photoDataUrls = Array(6).fill('');
     for (let i = 1; i <= 6; i += 1) {
         clearPhotoPreview(i);

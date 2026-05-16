@@ -95,7 +95,7 @@ O painel permite:
 ## Como usar
 
 1. Configure o projeto Firebase com Auth, Firestore e Storage
-2. Atualize as credenciais em `firebase-init.js`
+2. Copie `firebase-init.example.js` para `firebase-init.js` e insira suas credenciais do Firebase
 3. Abra `index.html` para enviar checklists
 4. Abra `admin.html` para visualizar e gerenciar registros
 

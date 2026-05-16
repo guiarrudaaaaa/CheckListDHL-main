@@ -1,15 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ✅ CHECKLIST PÚBLICO
-    match /checklists/{document} {
-      allow read, write: if true;
+    match /checklists/{id} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid == resource.data.createdByUid;
+      allow delete: if request.auth != null && request.auth.token.admin == true;
     }
 
-    // 🔒 DADOS ADMIN (somente usuários autenticados)
-    match /admin/{document} {
-      allow read, write: if request.auth != null;
+    match /admin/{doc} {
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
     }
   }
 }
