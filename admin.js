@@ -6,6 +6,23 @@ const PAGE_SIZE = 50;
 let nextPageCursor = null;
 let isLastPage = false;
 let isLoadingPage = false;
+let searchResults = null;
+let activeSearchTerm = '';
+
+async function loadTotalCount() {
+    if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseQuery || !window.firebaseCount || !window.firebaseGetCountFromServer) return;
+
+    try {
+        const checklistsRef = window.firebaseCollection(window.firebaseDb, 'checklists');
+        const countQuery = window.firebaseQuery(checklistsRef, window.firebaseCount());
+        const snapshot = await window.firebaseGetCountFromServer(countQuery);
+        const total = snapshot.data().count || 0;
+        const totalFirestoreCountEl = document.getElementById('totalFirestoreCount');
+        if (totalFirestoreCountEl) totalFirestoreCountEl.textContent = total;
+    } catch (err) {
+        console.warn('Não foi possível carregar o total do Firestore:', err);
+    }
+}
 
 function debounce(fn, delay) {
     let timeoutId;
@@ -21,12 +38,19 @@ function updatePaginationControls() {
     const loadMoreBtn = document.getElementById('loadMoreBtn');
     if (!paginationControls || !paginationInfo || !loadMoreBtn) return;
 
-    if (allChecklists.length === 0) {
+    if (allChecklists.length === 0 && !activeSearchTerm) {
         paginationControls.classList.add('hidden');
         return;
     }
 
     paginationControls.classList.remove('hidden');
+    if (activeSearchTerm) {
+        const visibleCount = getVisibleChecklists().length;
+        paginationInfo.textContent = `Busca ativa: ${visibleCount} registro(s) encontrado(s)`;
+        loadMoreBtn.classList.add('hidden');
+        return;
+    }
+
     paginationInfo.textContent = `Registros carregados: ${allChecklists.length}`;
     loadMoreBtn.disabled = isLoadingPage || isLastPage;
     loadMoreBtn.textContent = isLoadingPage ? 'Carregando...' : (isLastPage ? 'Todos os checklists carregados' : 'Carregar mais');
@@ -44,7 +68,10 @@ async function loadChecklists(reset = true) {
         allChecklists = [];
         nextPageCursor = null;
         isLastPage = false;
+        searchResults = null;
+        activeSearchTerm = '';
         showAdminError('');
+        loadTotalCount();
     }
 
     try {
@@ -1092,9 +1119,52 @@ document.querySelectorAll('.filter-tab').forEach(tab => {
     });
 });
 
-// Ouvinte para o campo de busca
-const debouncedRenderTable = debounce(renderTable, 250);
-document.getElementById('searchInput').addEventListener('input', debouncedRenderTable);
+async function searchChecklists(term) {
+    const trimmed = String(term || '').trim();
+    activeSearchTerm = trimmed;
+    if (!trimmed) {
+        searchResults = null;
+        renderTable();
+        return;
+    }
+
+    if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseQuery || !window.firebaseWhere || !window.firebaseGetDocs || !window.firebaseOrderBy || !window.firebaseLimit) {
+        searchResults = null;
+        renderTable();
+        return;
+    }
+
+    try {
+        const checklistsRef = window.firebaseCollection(window.firebaseDb, 'checklists');
+        const q = window.firebaseQuery(
+            checklistsRef,
+            window.firebaseWhere('dtNumber', '==', trimmed),
+            window.firebaseOrderBy('createdAt', 'desc'),
+            window.firebaseLimit(PAGE_SIZE)
+        );
+        const snapshot = await window.firebaseGetDocs(q);
+        if (snapshot.size > 0) {
+            searchResults = snapshot.docs.map(docSnapshot => {
+                const data = docSnapshot.data();
+                const checkinTime = data.checkinTime || (data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleString('pt-BR') : '');
+                return { id: docSnapshot.id, ...data, checkinTime };
+            });
+        } else {
+            searchResults = null;
+        }
+    } catch (err) {
+        console.error('Erro ao buscar DT no Firestore:', err);
+        searchResults = null;
+    }
+
+    renderTable();
+}
+
+const debouncedSearch = debounce(() => {
+    const term = document.getElementById('searchInput')?.value || '';
+    searchChecklists(term);
+}, 300);
+document.getElementById('searchInput').addEventListener('input', debouncedSearch);
 
 document.getElementById('loadMoreBtn')?.addEventListener('click', loadMoreChecklists);
 
@@ -1113,7 +1183,7 @@ function getVisibleChecklists() {
     }
 
     const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
-    if (searchTerm) {
+    if (!searchResults && searchTerm) {
         filtered = filtered.filter(c =>
             String(c.dtNumber || '').toLowerCase().includes(searchTerm) ||
             String(c.driverName || '').toLowerCase().includes(searchTerm) ||

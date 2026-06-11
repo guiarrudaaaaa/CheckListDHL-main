@@ -9,7 +9,10 @@ import {
   getDocs,
   query,
   orderBy,
+  where,
   startAfter,
+  getCountFromServer,
+  count,
   doc,
   deleteDoc,
   serverTimestamp,
@@ -43,8 +46,11 @@ window.firebaseUpdateDoc = updateDoc;
 window.firebaseGetDocs = getDocs;
 window.firebaseQuery = query;
 window.firebaseOrderBy = orderBy;
+window.firebaseWhere = where;
 window.firebaseLimit = limit;
 window.firebaseStartAfter = startAfter;
+window.firebaseCount = count;
+window.firebaseGetCountFromServer = getCountFromServer;
 window.firebaseDoc = doc;
 window.firebaseDeleteDoc = deleteDoc;
 window.firebaseServerTimestamp = serverTimestamp;
