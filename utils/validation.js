@@ -3,8 +3,7 @@
 (function () {
     function sanitizeNumber(input) {
         if (typeof input !== 'string') return '0';
-        const cleaned = input.replace(/[^
-\d.-]/g, '');
+        const cleaned = input.replace(/[^\d.\-]/g, '');
         const num = parseFloat(cleaned);
         return isNaN(num) ? '0' : num.toString();
     }

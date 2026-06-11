@@ -103,6 +103,10 @@
         <div class="table-container">
             <div id="checklistsList"></div>
         </div>
+        <div id="paginationControls" class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hidden">
+            <div id="paginationInfo" class="text-sm text-slate-600">Carregando registros...</div>
+            <button id="loadMoreBtn" type="button" class="btn-secondary">Carregar mais</button>
+        </div>
     </main>
 
     <script type="module" src="firebase-init.js"></script>
