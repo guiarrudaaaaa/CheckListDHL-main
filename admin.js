@@ -2,12 +2,7 @@
 setInterval(() => updateClock('liveTime'), 1000);
 updateClock('liveTime');
 
-const PAGE_SIZE = 50;
-let nextPageCursor = null;
-let isLastPage = false;
 let isLoadingPage = false;
-let searchResults = null;
-let activeSearchTerm = '';
 
 async function loadTotalCount() {
     if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseQuery || !window.firebaseCount || !window.firebaseGetCountFromServer) return;
@@ -36,28 +31,24 @@ function updatePaginationControls() {
     const paginationControls = document.getElementById('paginationControls');
     const paginationInfo = document.getElementById('paginationInfo');
     const loadMoreBtn = document.getElementById('loadMoreBtn');
-    if (!paginationControls || !paginationInfo || !loadMoreBtn) return;
+    if (!paginationControls || !paginationInfo) return;
 
-    if (allChecklists.length === 0 && !activeSearchTerm) {
+    if (allChecklists.length === 0) {
         paginationControls.classList.add('hidden');
         return;
     }
 
     paginationControls.classList.remove('hidden');
-    if (activeSearchTerm) {
-        const visibleCount = getVisibleChecklists().length;
-        paginationInfo.textContent = `Busca ativa: ${visibleCount} registro(s) encontrado(s)`;
+    paginationInfo.textContent = isLoadingPage
+        ? 'Carregando todos os registros...'
+        : `Registros carregados: ${allChecklists.length}`;
+    if (loadMoreBtn) {
         loadMoreBtn.classList.add('hidden');
-        return;
     }
-
-    paginationInfo.textContent = `Registros carregados: ${allChecklists.length}`;
-    loadMoreBtn.disabled = isLoadingPage || isLastPage;
-    loadMoreBtn.textContent = isLoadingPage ? 'Carregando...' : (isLastPage ? 'Todos os checklists carregados' : 'Carregar mais');
 }
 
 async function loadChecklists(reset = true) {
-    if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseGetDocs || !window.firebaseQuery || !window.firebaseOrderBy || !window.firebaseLimit || !window.firebaseStartAfter) {
+    if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseGetDocs || !window.firebaseQuery || !window.firebaseOrderBy) {
         console.error('Firebase não está inicializado no painel admin.');
         showAdminError('Firebase não está disponível. Atualize a página.');
         return;
@@ -66,10 +57,6 @@ async function loadChecklists(reset = true) {
     if (isLoadingPage) return;
     if (reset) {
         allChecklists = [];
-        nextPageCursor = null;
-        isLastPage = false;
-        searchResults = null;
-        activeSearchTerm = '';
         showAdminError('');
         loadTotalCount();
     }
@@ -79,20 +66,13 @@ async function loadChecklists(reset = true) {
         updatePaginationControls();
 
         const checklistsRef = window.firebaseCollection(window.firebaseDb, 'checklists');
-        const queryArgs = [
+        const q = window.firebaseQuery(
             checklistsRef,
             window.firebaseOrderBy('createdAt', 'desc')
-        ];
-
-        if (!reset && nextPageCursor) {
-            queryArgs.push(window.firebaseStartAfter(nextPageCursor));
-        }
-        queryArgs.push(window.firebaseLimit(PAGE_SIZE));
-
-        const q = window.firebaseQuery(...queryArgs);
+        );
         const snapshot = await window.firebaseGetDocs(q);
 
-        const pageData = snapshot.docs.map(docSnapshot => {
+        const loadedData = snapshot.docs.map(docSnapshot => {
             const data = docSnapshot.data();
             const checkinTime = data.checkinTime || (data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleString('pt-BR') : '');
             return {
@@ -102,10 +82,7 @@ async function loadChecklists(reset = true) {
             };
         });
 
-        allChecklists = reset ? pageData : allChecklists.concat(pageData);
-        nextPageCursor = snapshot.docs[snapshot.docs.length - 1] || nextPageCursor;
-        isLastPage = snapshot.size < PAGE_SIZE;
-
+        allChecklists = loadedData;
         allChecklists = validateChecklistData(allChecklists);
         updateMetrics();
         renderTable();
@@ -130,48 +107,13 @@ async function loadChecklists(reset = true) {
     }
 }
 
-async function loadMoreChecklists() {
-    if (isLastPage || isLoadingPage) return;
-    await loadChecklists(false);
-}
-
 function subscribeChecklists() {
     if (checklistsUnsubscribe) {
         checklistsUnsubscribe();
         checklistsUnsubscribe = null;
     }
 
-    if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseQuery || !window.firebaseOrderBy || !window.firebaseLimit || !window.firebaseOnSnapshot) {
-        loadChecklists(true);
-        return;
-    }
-
-    const checklistsRef = window.firebaseCollection(window.firebaseDb, 'checklists');
-    const q = window.firebaseQuery(
-        checklistsRef,
-        window.firebaseOrderBy('createdAt', 'desc'),
-        window.firebaseLimit(PAGE_SIZE)
-    );
-
-    checklistsUnsubscribe = window.firebaseOnSnapshot(q, (snapshot) => {
-        allChecklists = snapshot.docs.map(docSnapshot => {
-            const data = docSnapshot.data();
-            const checkinTime = data.checkinTime || (data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleString('pt-BR') : '');
-            return {
-                id: docSnapshot.id,
-                ...data,
-                checkinTime
-            };
-        });
-
-        allChecklists = validateChecklistData(allChecklists);
-        updateMetrics();
-        renderTable();
-    }, (err) => {
-        console.error('Erro no listener de checklists:', err);
-        showAdminError('Não foi possível conectar ao Firestore. O painel será recarregado em modo offline.');
-        loadChecklists(true);
-    });
+    loadChecklists(true);
 }
 
 // ===== SEGURANÇA E SANITIZAÇÃO =====
@@ -1119,44 +1061,12 @@ document.querySelectorAll('.filter-tab').forEach(tab => {
     });
 });
 
-async function searchChecklists(term) {
-    const trimmed = String(term || '').trim();
-    activeSearchTerm = trimmed;
-    if (!trimmed) {
-        searchResults = null;
-        renderTable();
-        return;
+function searchChecklists(term) {
+    const trimmed = String(term || '').trim().toLowerCase();
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.value = term;
     }
-
-    if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseQuery || !window.firebaseWhere || !window.firebaseGetDocs || !window.firebaseOrderBy || !window.firebaseLimit) {
-        searchResults = null;
-        renderTable();
-        return;
-    }
-
-    try {
-        const checklistsRef = window.firebaseCollection(window.firebaseDb, 'checklists');
-        const q = window.firebaseQuery(
-            checklistsRef,
-            window.firebaseWhere('dtNumber', '==', trimmed),
-            window.firebaseOrderBy('createdAt', 'desc'),
-            window.firebaseLimit(PAGE_SIZE)
-        );
-        const snapshot = await window.firebaseGetDocs(q);
-        if (snapshot.size > 0) {
-            searchResults = snapshot.docs.map(docSnapshot => {
-                const data = docSnapshot.data();
-                const checkinTime = data.checkinTime || (data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleString('pt-BR') : '');
-                return { id: docSnapshot.id, ...data, checkinTime };
-            });
-        } else {
-            searchResults = null;
-        }
-    } catch (err) {
-        console.error('Erro ao buscar DT no Firestore:', err);
-        searchResults = null;
-    }
-
     renderTable();
 }
 
@@ -1164,9 +1074,7 @@ const debouncedSearch = debounce(() => {
     const term = document.getElementById('searchInput')?.value || '';
     searchChecklists(term);
 }, 300);
-document.getElementById('searchInput').addEventListener('input', debouncedSearch);
-
-document.getElementById('loadMoreBtn')?.addEventListener('click', loadMoreChecklists);
+document.getElementById('searchInput')?.addEventListener('input', debouncedSearch);
 
 // Ouvinte para o botão "Nova Entrada"
 document.getElementById('newEntryBtn').addEventListener('click', () => {
@@ -1183,7 +1091,7 @@ function getVisibleChecklists() {
     }
 
     const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
-    if (!searchResults && searchTerm) {
+    if (searchTerm) {
         filtered = filtered.filter(c =>
             String(c.dtNumber || '').toLowerCase().includes(searchTerm) ||
             String(c.driverName || '').toLowerCase().includes(searchTerm) ||
