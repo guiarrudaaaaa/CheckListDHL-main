@@ -520,6 +520,18 @@ document.addEventListener('DOMContentLoaded', () => {
 async function saveChecklist(event) {
     event.preventDefault();
 
+    // Bloqueia o envio se ainda houver pendências (camada de segurança extra)
+    const submitBtn = document.querySelector('button[type="submit"]');
+    if (submitBtn && submitBtn.classList.contains('btn-locked')) {
+        if (window.pendingModule) window.pendingModule.runChecks();
+        const panel = document.getElementById('pendingPanel');
+        if (panel) {
+            panel.classList.add('visible');
+            panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+    }
+
     clearFormAlert();
     if (!secureInputValidation()) {
         showFormAlert('error', 'Erro de validação de segurança. Verifique os dados inseridos.');
@@ -616,6 +628,8 @@ async function saveChecklist(event) {
         clearSignature('driverSignatureCanvas');
         clearSignature('checkerSignatureCanvas');
         auditAll();
+        // Reinicia os indicadores de pendência após o envio
+        if (window.pendingModule) window.pendingModule.runChecks();
     } catch (error) {
         console.error('Erro ao enviar dados para o painel:', error);
         if (docRef && window.firebaseDeleteDoc) {
