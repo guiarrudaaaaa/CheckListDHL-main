@@ -62,6 +62,9 @@ function updatePaginationControls() {
     const loadMoreBtn = document.getElementById('loadMoreBtn');
     if (!paginationControls || !paginationInfo) return;
 
+    const visibleCount = getVisibleChecklists().length;
+    const hasMoreRows = hasMoreChecklists;
+
     if (allChecklists.length === 0) {
         paginationControls.classList.add('hidden');
         return;
@@ -69,15 +72,16 @@ function updatePaginationControls() {
 
     paginationControls.classList.remove('hidden');
     paginationInfo.textContent = isLoadingPage
-        ? 'Carregando todos os registros...'
-        : `Registros carregados: ${allChecklists.length}`;
+        ? 'Carregando registros...'
+        : `Exibindo ${Math.min(renderedRowsCount, visibleCount)} de ${visibleCount} registros`;
+
     if (loadMoreBtn) {
-        loadMoreBtn.classList.add('hidden');
+        loadMoreBtn.classList.toggle('hidden', !hasMoreRows);
     }
 }
 
 async function loadChecklists(reset = true) {
-    if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseGetDocs || !window.firebaseQuery || !window.firebaseOrderBy || !window.firebaseWhere) {
+    if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseGetDocs || !window.firebaseQuery || !window.firebaseOrderBy || !window.firebaseWhere || !window.firebaseLimit) {
         console.error('Firebase não está inicializado no painel admin.');
         showAdminError('Firebase não está disponível. Atualize a página.');
         return;
@@ -86,6 +90,9 @@ async function loadChecklists(reset = true) {
     if (isLoadingPage) return;
     if (reset) {
         allChecklists = [];
+        renderedRowsCount = TABLE_BATCH_SIZE;
+        lastVisibleDoc = null;
+        hasMoreChecklists = true;
         showAdminError('');
         loadTotalCount();
     }
@@ -95,38 +102,59 @@ async function loadChecklists(reset = true) {
         updatePaginationControls();
 
         const checklistsRef = window.firebaseCollection(window.firebaseDb, 'checklists');
-        
-        // Carrega dados dos últimos 30 dias para permitir busca em qualquer dia
-        const { startOfDay: start30Days, endOfDay: endToday } = getLast30DaysRange();
-        
-        // Cria a query para carregar registros dos últimos 30 dias
-        const q = window.firebaseQuery(
-            checklistsRef,
-            window.firebaseWhere('createdAt', '>=', start30Days),
-            window.firebaseWhere('createdAt', '<=', endToday),
-            window.firebaseOrderBy('createdAt', 'desc')
-        );
+        const queryParts = [
+            window.firebaseOrderBy('createdAt', 'desc'),
+            window.firebaseLimit(TABLE_BATCH_SIZE)
+        ];
+
+        if (!reset && lastVisibleDoc) {
+            queryParts.splice(1, 0, window.firebaseStartAfter(lastVisibleDoc));
+        }
+
+        const q = window.firebaseQuery(checklistsRef, ...queryParts);
         const snapshot = await window.firebaseGetDocs(q);
 
         const loadedData = snapshot.docs.map(docSnapshot => {
-            const data = docSnapshot.data();
+            const data = docSnapshot.data() || {};
             const checkinTime = data.checkinTime || (data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleString('pt-BR') : '');
             return {
                 id: docSnapshot.id,
-                ...data,
                 operationType: normalizeOperationType(data.operationType),
-                checkinTime
+                driverName: data.driverName || '',
+                placaCavalo: data.placaCavalo || '',
+                placaCarreta1: data.placaCarreta1 || '',
+                doca: data.doca || '',
+                dtNumber: data.dtNumber || '',
+                transportadora: data.transportadora || '',
+                totalFardos: data.totalFardos || 0,
+                avariados: data.avariados || 0,
+                scrap: data.scrap || 0,
+                avariasInternas: data.avariasInternas || 0,
+                totalPbr: data.totalPbr || data.totalPBR || 0,
+                checkinTime,
+                createdAt: data.createdAt || null
             };
         });
 
-        allChecklists = loadedData;
+        if (reset) {
+            allChecklists = loadedData;
+        } else {
+            allChecklists = allChecklists.concat(loadedData);
+        }
+
         allChecklists = validateChecklistData(allChecklists);
+
+        if (snapshot.docs.length > 0) {
+            lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1];
+        }
+        hasMoreChecklists = snapshot.docs.length === TABLE_BATCH_SIZE;
+
         updateMetrics();
         renderTable();
         updatePaginationControls();
 
         if (reset && allChecklists.length === 0) {
-            showAdminError('Nenhum registro encontrado nos últimos 30 dias.');
+            showAdminError('Nenhum registro encontrado.');
         }
     } catch (err) {
         console.error('Erro ao carregar relatório Firebase:', err);
@@ -177,7 +205,11 @@ function validateChecklistData(data) {
 let currentFilter = 'todos'; // Filtro atual aplicado ('todos', 'inbound', 'outbound')
 let allChecklists = []; // Array que armazena todos os checklists carregados
 let checklistsUnsubscribe = null; // Função para cancelar a escuta em tempo real
-let selectedDate = new Date(); // Data selecionada para filtro
+let selectedDate = null; // Mantido apenas para compatibilidade, mas sem filtro por data
+const TABLE_BATCH_SIZE = 10;
+let renderedRowsCount = TABLE_BATCH_SIZE;
+let lastVisibleDoc = null;
+let hasMoreChecklists = true;
 
 // ===== ATUALIZAÇÃO DE MÉTRICAS =====
 // Calcula e atualiza os valores exibidos nos cards de métricas
@@ -331,12 +363,14 @@ function renderTable() {
     // Limpa o conteúdo anterior
     container.innerHTML = '';
 
-    // Aplica filtro por tipo de operação
+    // Aplica filtro por tipo de operação e carrega em blocos menores
     const filtered = getVisibleChecklists();
+    const rowsToRender = filtered.slice(0, renderedRowsCount);
 
     // Se não há registros após filtros, mostra mensagem vazia
     if (filtered.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>📋 Nenhum registro encontrado</p></div>';
+        updatePaginationControls();
         return;
     }
 
@@ -367,7 +401,7 @@ function renderTable() {
     const tbody = table.querySelector('tbody');
 
     // Para cada checklist filtrado, cria uma linha na tabela
-    filtered.forEach((checklist) => {
+    rowsToRender.forEach((checklist) => {
         const row = document.createElement('tr');
         const opTypeRaw = normalizeOperationType(checklist.operationType);
         const opType = escapeHtml(opTypeRaw);
@@ -410,9 +444,25 @@ function renderTable() {
 
 // ===== FUNÇÕES DE AÇÃO =====
 // Função para visualizar detalhes completos do checklist
-function viewChecklistDetails(index) {
-    const checklist = allChecklists[index];
-    if (!checklist) return;
+async function viewChecklistDetails(index) {
+    const summaryChecklist = allChecklists[index];
+    if (!summaryChecklist) return;
+
+    let checklist = summaryChecklist;
+    const needsFullLoad = !Array.isArray(checklist.items) && !Array.isArray(checklist.photos) && !checklist.driverSignature && !checklist.checkerSignature && !checklist.hygiene;
+
+    if (needsFullLoad && window.firebaseDb && window.firebaseGetDoc && window.firebaseDoc) {
+        try {
+            const detailRef = window.firebaseDoc(window.firebaseDb, 'checklists', summaryChecklist.id);
+            const detailSnapshot = await window.firebaseGetDoc(detailRef);
+            if (detailSnapshot.exists()) {
+                checklist = { id: detailSnapshot.id, ...detailSnapshot.data() };
+                checklist.operationType = normalizeOperationType(checklist.operationType);
+            }
+        } catch (err) {
+            console.warn('Não foi possível carregar os detalhes completos do checklist:', err);
+        }
+    }
 
     const normalizedType = normalizeOperationType(checklist.operationType);
     const totalPallets = Number.isFinite(Number(checklist.totalPbr || checklist.totalPBR))
@@ -1083,10 +1133,10 @@ window.viewChecklistDetailsById = viewChecklistDetailsById;
 window.deleteChecklistById = deleteChecklistById;
 window.deleteChecklist = deleteChecklist;
 
-function viewChecklistDetailsById(id) {
+async function viewChecklistDetailsById(id) {
     const index = allChecklists.findIndex(item => item.id === id);
     if (index === -1) return;
-    viewChecklistDetails(index);
+    await viewChecklistDetails(index);
 }
 
 async function deleteChecklistById(id) {
@@ -1101,55 +1151,37 @@ async function deleteChecklistById(id) {
 // ===== OUVINTES DE EVENTOS =====
 // Ouvinte para as abas de filtro
 document.querySelectorAll('.filter-tab').forEach(function(tab) {
-    tab.addEventListener('click', function() {
+    tab.addEventListener('click', async function() {
         document.querySelectorAll('.filter-tab').forEach(function(t) {
             t.classList.remove('active');
         });
         this.classList.add('active');
         currentFilter = this.dataset.filter;
+        renderedRowsCount = TABLE_BATCH_SIZE;
+        await loadChecklists(true);
         updateMetrics();
         renderTable();
     });
 });
 
 // ===== LISTENERS DE FILTRO DE DATA =====
-// Inicializa o input de data com a data de hoje
+// Filtro de data removido: o painel passeia a carregar todas as DTs em uma única visão.
 function initializeDateFilter() {
     const filterDateInput = document.getElementById('filterDate');
     if (!filterDateInput) return;
-    
-    // Formata data de hoje para YYYY-MM-DD
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    filterDateInput.value = `${year}-${month}-${day}`;
+    filterDateInput.value = '';
 }
-
-// Listener para mudança de data
-document.getElementById('filterDate')?.addEventListener('change', function() {
-    if (!this.value) return;
-    
-    // Converte o valor do input (YYYY-MM-DD) para Date
-    const [year, month, day] = this.value.split('-');
-    selectedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    
-    // Atualiza métricas e tabela com o novo filtro de data
-    updateMetrics();
-    renderTable();
-});
-
-// Listener para o botão "Hoje"
-document.getElementById('resetDateBtn')?.addEventListener('click', function() {
-    selectedDate = new Date();
-    initializeDateFilter();
-    updateMetrics();
-    renderTable();
-});
 
 // Ouvinte para o botão "Nova Entrada"
 document.getElementById('newEntryBtn').addEventListener('click', () => {
     window.location.href = 'index.html';
+});
+
+document.getElementById('loadMoreBtn')?.addEventListener('click', async () => {
+    if (!hasMoreChecklists || isLoadingPage) return;
+    await loadChecklists(false);
+    renderedRowsCount = Math.min(renderedRowsCount + TABLE_BATCH_SIZE, getVisibleChecklists().length);
+    renderTable();
 });
 
 // ===== FUNÇÃO DE FILTRO VISÍVEL =====
@@ -1178,18 +1210,7 @@ function getVisibleChecklists() {
         result = temp;
     }
     
-    var range = getDateRange(selectedDate);
-    var temp2 = [];
-    for (i = 0; i < result.length; i++) {
-        c = result[i];
-        if (!c.createdAt) continue;
-        var dt = c.createdAt.toDate instanceof Function ? c.createdAt.toDate() : c.createdAt;
-        if (dt >= range.startOfDay && dt <= range.endOfDay) {
-            temp2.push(c);
-        }
-    }
-    result = temp2;
-
+    // Filtro por data removido: o painel exibe todas as DTs carregadas.
     var searchInput = document.getElementById('searchInput');
     var term = searchInput ? (searchInput.value || '').toLowerCase() : '';
     

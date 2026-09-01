@@ -7,6 +7,7 @@ import {
   addDoc,
   updateDoc,
   getDocs,
+  getDoc,
   query,
   orderBy,
   doc,
@@ -38,6 +39,7 @@ window.firebaseCollection = collection;
 window.firebaseAddDoc = addDoc;
 window.firebaseUpdateDoc = updateDoc;
 window.firebaseGetDocs = getDocs;
+window.firebaseGetDoc = getDoc;
 window.firebaseQuery = query;
 window.firebaseOrderBy = orderBy;
 window.firebaseLimit = limit;
