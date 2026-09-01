@@ -323,6 +323,9 @@ const formatValue = (val) => {
 // ===== RENDERIZAÇÃO DA TABELA =====
 // Renderiza a tabela de registros aplicando filtros e busca
 function renderTable() {
+    // Mantém os cards de métricas sincronizados com o filtro atual
+    updateMetrics();
+
     // Seleciona o container da tabela
     const container = document.getElementById('checklistsList');
     // Limpa o conteúdo anterior
@@ -1104,6 +1107,7 @@ document.querySelectorAll('.filter-tab').forEach(function(tab) {
         });
         this.classList.add('active');
         currentFilter = this.dataset.filter;
+        updateMetrics();
         renderTable();
     });
 });
@@ -1130,7 +1134,8 @@ document.getElementById('filterDate')?.addEventListener('change', function() {
     const [year, month, day] = this.value.split('-');
     selectedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     
-    // Apenas renderiza a tabela com o novo filtro de data
+    // Atualiza métricas e tabela com o novo filtro de data
+    updateMetrics();
     renderTable();
 });
 
@@ -1138,6 +1143,7 @@ document.getElementById('filterDate')?.addEventListener('change', function() {
 document.getElementById('resetDateBtn')?.addEventListener('click', function() {
     selectedDate = new Date();
     initializeDateFilter();
+    updateMetrics();
     renderTable();
 });
 
