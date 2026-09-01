@@ -18,6 +18,21 @@ function getDateRange(date = null) {
     return { startOfDay, endOfDay };
 }
 
+// Obtém o intervalo dos últimos 30 dias para carregar dados
+function getLast30DaysRange() {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+    
+    // Início do dia 30 dias atrás
+    const startOfDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0);
+    
+    // Fim do dia hoje
+    const endOfDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+    
+    return { startOfDay, endOfDay };
+}
+
 async function loadTotalCount() {
     if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseQuery || !window.firebaseCount || !window.firebaseGetCountFromServer) return;
 
@@ -81,14 +96,14 @@ async function loadChecklists(reset = true) {
 
         const checklistsRef = window.firebaseCollection(window.firebaseDb, 'checklists');
         
-        // Obtém o intervalo de data selecionada
-        const { startOfDay, endOfDay } = getDateRange(selectedDate);
+        // Carrega dados dos últimos 30 dias para permitir busca em qualquer dia
+        const { startOfDay: start30Days, endOfDay: endToday } = getLast30DaysRange();
         
-        // Cria a query com filtro de data
+        // Cria a query para carregar registros dos últimos 30 dias
         const q = window.firebaseQuery(
             checklistsRef,
-            window.firebaseWhere('createdAt', '>=', startOfDay),
-            window.firebaseWhere('createdAt', '<=', endOfDay),
+            window.firebaseWhere('createdAt', '>=', start30Days),
+            window.firebaseWhere('createdAt', '<=', endToday),
             window.firebaseOrderBy('createdAt', 'desc')
         );
         const snapshot = await window.firebaseGetDocs(q);
@@ -110,14 +125,7 @@ async function loadChecklists(reset = true) {
         updatePaginationControls();
 
         if (reset && allChecklists.length === 0) {
-            const fallbackSnapshot = await window.firebaseGetDocs(
-                window.firebaseQuery(checklistsRef, window.firebaseLimit(1))
-            );
-            if (fallbackSnapshot.size > 0) {
-                showAdminError('Nenhum registro encontrado para hoje. Selecione outra data se desejar visualizar checklists anteriores.');
-            } else {
-                showAdminError('Nenhum registro encontrado. Verifique sua conexão e se o projeto Firebase está correto.');
-            }
+            showAdminError('Nenhum registro encontrado nos últimos 30 dias.');
         }
     } catch (err) {
         console.error('Erro ao carregar relatório Firebase:', err);
@@ -1106,15 +1114,15 @@ document.getElementById('filterDate')?.addEventListener('change', function() {
     const [year, month, day] = this.value.split('-');
     selectedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     
-    // Recarrega os dados com a nova data
-    loadChecklists(true);
+    // Apenas renderiza a tabela com o novo filtro de data
+    renderTable();
 });
 
 // Listener para o botão "Hoje"
 document.getElementById('resetDateBtn')?.addEventListener('click', function() {
     selectedDate = new Date();
     initializeDateFilter();
-    loadChecklists(true);
+    renderTable();
 });
 
 function searchChecklists(term) {
@@ -1140,12 +1148,23 @@ document.getElementById('newEntryBtn').addEventListener('click', () => {
 
 function getVisibleChecklists() {
     let filtered = allChecklists;
+    
+    // Filtro por tipo de operação
     if (currentFilter === 'inbound') {
-        filtered = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'IN');
+        filtered = filtered.filter(c => String(c.operationType || '').toUpperCase() === 'IN');
     } else if (currentFilter === 'outbound') {
-        filtered = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'OUT');
+        filtered = filtered.filter(c => String(c.operationType || '').toUpperCase() === 'OUT');
     }
+    
+    // Filtro por data selecionada
+    const { startOfDay, endOfDay } = getDateRange(selectedDate);
+    filtered = filtered.filter(c => {
+        if (!c.createdAt) return false;
+        const createdDate = c.createdAt.toDate ? c.createdAt.toDate() : c.createdAt;
+        return createdDate >= startOfDay && createdDate <= endOfDay;
+    });
 
+    // Filtro por termo de busca
     const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
     if (searchTerm) {
         filtered = filtered.filter(c =>
@@ -1158,6 +1177,7 @@ function getVisibleChecklists() {
     }
 
     return filtered;
+}
 }
 
 function sanitizeSheetName(name) {
