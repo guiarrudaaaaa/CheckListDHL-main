@@ -4,6 +4,20 @@ updateClock('liveTime');
 
 let isLoadingPage = false;
 
+// ===== FUNÇÕES DE FILTRO DE DATA =====
+// Obtém o intervalo de data (início e fim do dia em UTC)
+function getDateRange(date = null) {
+    const targetDate = date || new Date();
+    
+    // Início do dia (00:00:00)
+    const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0, 0);
+    
+    // Fim do dia (23:59:59)
+    const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999);
+    
+    return { startOfDay, endOfDay };
+}
+
 async function loadTotalCount() {
     if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseQuery || !window.firebaseCount || !window.firebaseGetCountFromServer) return;
 
@@ -48,7 +62,7 @@ function updatePaginationControls() {
 }
 
 async function loadChecklists(reset = true) {
-    if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseGetDocs || !window.firebaseQuery || !window.firebaseOrderBy) {
+    if (!window.firebaseDb || !window.firebaseCollection || !window.firebaseGetDocs || !window.firebaseQuery || !window.firebaseOrderBy || !window.firebaseWhere) {
         console.error('Firebase não está inicializado no painel admin.');
         showAdminError('Firebase não está disponível. Atualize a página.');
         return;
@@ -66,8 +80,15 @@ async function loadChecklists(reset = true) {
         updatePaginationControls();
 
         const checklistsRef = window.firebaseCollection(window.firebaseDb, 'checklists');
+        
+        // Obtém o intervalo de data selecionada
+        const { startOfDay, endOfDay } = getDateRange(selectedDate);
+        
+        // Cria a query com filtro de data
         const q = window.firebaseQuery(
             checklistsRef,
+            window.firebaseWhere('createdAt', '>=', startOfDay),
+            window.firebaseWhere('createdAt', '<=', endOfDay),
             window.firebaseOrderBy('createdAt', 'desc')
         );
         const snapshot = await window.firebaseGetDocs(q);
@@ -93,7 +114,7 @@ async function loadChecklists(reset = true) {
                 window.firebaseQuery(checklistsRef, window.firebaseLimit(1))
             );
             if (fallbackSnapshot.size > 0) {
-                showAdminError('Nenhum registro encontrado para o filtro atual ou pode haver dados sem createdAt. Atualize a página ou verifique os registros.');
+                showAdminError('Nenhum registro encontrado para hoje. Selecione outra data se desejar visualizar checklists anteriores.');
             } else {
                 showAdminError('Nenhum registro encontrado. Verifique sua conexão e se o projeto Firebase está correto.');
             }
@@ -146,6 +167,7 @@ function validateChecklistData(data) {
 let currentFilter = 'todos'; // Filtro atual aplicado ('todos', 'inbound', 'outbound')
 let allChecklists = []; // Array que armazena todos os checklists carregados
 let checklistsUnsubscribe = null; // Função para cancelar a escuta em tempo real
+let selectedDate = new Date(); // Data selecionada para filtro
 
 // ===== ATUALIZAÇÃO DE MÉTRICAS =====
 // Calcula e atualiza os valores exibidos nos cards de métricas
@@ -217,6 +239,7 @@ function showAuthenticatedAdmin() {
     document.getElementById('signOutBtn')?.classList.remove('hidden');
     showAuthError('');
     showAdminError('');
+    initializeDateFilter();
     loadChecklists(true);
 }
 
@@ -1059,6 +1082,39 @@ document.querySelectorAll('.filter-tab').forEach(tab => {
         currentFilter = this.dataset.filter;
         renderTable();
     });
+});
+
+// ===== LISTENERS DE FILTRO DE DATA =====
+// Inicializa o input de data com a data de hoje
+function initializeDateFilter() {
+    const filterDateInput = document.getElementById('filterDate');
+    if (!filterDateInput) return;
+    
+    // Formata data de hoje para YYYY-MM-DD
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    filterDateInput.value = `${year}-${month}-${day}`;
+}
+
+// Listener para mudança de data
+document.getElementById('filterDate')?.addEventListener('change', function() {
+    if (!this.value) return;
+    
+    // Converte o valor do input (YYYY-MM-DD) para Date
+    const [year, month, day] = this.value.split('-');
+    selectedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    // Recarrega os dados com a nova data
+    loadChecklists(true);
+});
+
+// Listener para o botão "Hoje"
+document.getElementById('resetDateBtn')?.addEventListener('click', function() {
+    selectedDate = new Date();
+    initializeDateFilter();
+    loadChecklists(true);
 });
 
 function searchChecklists(term) {
