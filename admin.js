@@ -180,18 +180,21 @@ let selectedDate = new Date(); // Data selecionada para filtro
 // ===== ATUALIZAÇÃO DE MÉTRICAS =====
 // Calcula e atualiza os valores exibidos nos cards de métricas
 function updateMetrics() {
+    // Usa apenas os registros visíveis (filtrados por data e tipo)
+    const visibleData = getVisibleChecklists();
+    
     // Conta operações inbound (IN)
-    const inCount = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'IN').length;
+    const inCount = visibleData.filter(c => String(c.operationType || '').toUpperCase() === 'IN').length;
     // Conta operações outbound (OUT)
-    const outCount = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'OUT').length;
+    const outCount = visibleData.filter(c => String(c.operationType || '').toUpperCase() === 'OUT').length;
     // Total de pallets inbound
-    const totalPbrInbound = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'IN').reduce((sum, item) => sum + (parseInt(item.totalPbr || item.totalPBR || 0, 10) || 0), 0);
+    const totalPbrInbound = visibleData.filter(c => String(c.operationType || '').toUpperCase() === 'IN').reduce((sum, item) => sum + (parseInt(item.totalPbr || item.totalPBR || 0, 10) || 0), 0);
     // Total de pallets outbound
-    const totalPbrOutbound = allChecklists.filter(c => String(c.operationType || '').toUpperCase() === 'OUT').reduce((sum, item) => sum + (parseInt(item.totalPbr || item.totalPBR || 0, 10) || 0), 0);
+    const totalPbrOutbound = visibleData.filter(c => String(c.operationType || '').toUpperCase() === 'OUT').reduce((sum, item) => sum + (parseInt(item.totalPbr || item.totalPBR || 0, 10) || 0), 0);
     // Total de pallets usados em todos os checklists
     const totalPbr = totalPbrInbound + totalPbrOutbound;
     // Total de registros
-    const totalRegistros = allChecklists.length;
+    const totalRegistros = visibleData.length;
 
     // Atualiza os elementos HTML dos cards
     const totalRegistrosEl = document.getElementById('totalRegistros');
