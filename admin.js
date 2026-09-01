@@ -114,6 +114,7 @@ async function loadChecklists(reset = true) {
             return {
                 id: docSnapshot.id,
                 ...data,
+                operationType: normalizeOperationType(data.operationType),
                 checkinTime
             };
         });
@@ -154,6 +155,7 @@ function validateChecklistData(data) {
     return data.filter(item => {
         // Valida estrutura básica
         if (typeof item !== 'object' || !item) return false;
+        item.operationType = normalizeOperationType(item.operationType);
         // Sanitiza campos de texto
         if (item.dtNumber) item.dtNumber = sanitizeText(item.dtNumber);
         if (item.nfNumber) item.nfNumber = sanitizeText(item.nfNumber);
@@ -184,13 +186,13 @@ function updateMetrics() {
     const visibleData = getVisibleChecklists();
     
     // Conta operações inbound (IN)
-    const inCount = visibleData.filter(c => String(c.operationType || '').toUpperCase() === 'IN').length;
+    const inCount = visibleData.filter(c => normalizeOperationType(c.operationType) === 'IN').length;
     // Conta operações outbound (OUT)
-    const outCount = visibleData.filter(c => String(c.operationType || '').toUpperCase() === 'OUT').length;
+    const outCount = visibleData.filter(c => normalizeOperationType(c.operationType) === 'OUT').length;
     // Total de pallets inbound
-    const totalPbrInbound = visibleData.filter(c => String(c.operationType || '').toUpperCase() === 'IN').reduce((sum, item) => sum + (parseInt(item.totalPbr || item.totalPBR || 0, 10) || 0), 0);
+    const totalPbrInbound = visibleData.filter(c => normalizeOperationType(c.operationType) === 'IN').reduce((sum, item) => sum + (parseInt(item.totalPbr || item.totalPBR || 0, 10) || 0), 0);
     // Total de pallets outbound
-    const totalPbrOutbound = visibleData.filter(c => String(c.operationType || '').toUpperCase() === 'OUT').reduce((sum, item) => sum + (parseInt(item.totalPbr || item.totalPBR || 0, 10) || 0), 0);
+    const totalPbrOutbound = visibleData.filter(c => normalizeOperationType(c.operationType) === 'OUT').reduce((sum, item) => sum + (parseInt(item.totalPbr || item.totalPBR || 0, 10) || 0), 0);
     // Total de pallets usados em todos os checklists
     const totalPbr = totalPbrInbound + totalPbrOutbound;
     // Total de registros
@@ -302,6 +304,14 @@ async function handleSignOut() {
 // Função para escapar valores CSV (usando a de shared.js)
 
 // ===== FUNÇÃO UTILITÁRIA =====
+// Normaliza o tipo de operação para o padrão usado no painel
+const normalizeOperationType = (value) => {
+    const normalized = String(value ?? '').trim().toUpperCase();
+    if (normalized === 'INBOUND' || normalized === 'IN') return 'IN';
+    if (normalized === 'OUTBOUND' || normalized === 'OUT') return 'OUT';
+    return normalized;
+};
+
 // Formata valores para exibição, substituindo valores vazios por '—'
 const formatValue = (val) => {
     // Verifica se o valor é null, undefined ou string vazia
@@ -356,7 +366,7 @@ function renderTable() {
     // Para cada checklist filtrado, cria uma linha na tabela
     filtered.forEach((checklist) => {
         const row = document.createElement('tr');
-        const opTypeRaw = formatValue(checklist.operationType);
+        const opTypeRaw = normalizeOperationType(checklist.operationType);
         const opType = escapeHtml(opTypeRaw);
         const opEmoji = opTypeRaw === 'IN' ? '📥' : (opTypeRaw === 'OUT' ? '📤' : '❓');
         const badgeClass = opTypeRaw === 'IN' ? 'badge-in' : (opTypeRaw === 'OUT' ? 'badge-out' : '');
@@ -401,6 +411,7 @@ function viewChecklistDetails(index) {
     const checklist = allChecklists[index];
     if (!checklist) return;
 
+    const normalizedType = normalizeOperationType(checklist.operationType);
     const totalPallets = Number.isFinite(Number(checklist.totalPbr || checklist.totalPBR))
         ? Number(checklist.totalPbr || checklist.totalPBR)
         : (Array.isArray(checklist.palletRows)
@@ -435,7 +446,7 @@ function viewChecklistDetails(index) {
                 <div class="bg-blue-50 p-4 rounded-lg">
                     <h3 class="font-bold text-lg mb-3">🏷️ Identificação</h3>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                        <div><strong>Tipo:</strong> ${checklist.operationType === 'IN' ? '📥 Inbound' : '📤 Outbound'}</div>
+                        <div><strong>Tipo:</strong> ${normalizedType === 'IN' ? '📥 Inbound' : '📤 Outbound'}</div>
                         <div><strong>NF:</strong> ${escapeHtml(formatValue(checklist.nfNumber))}</div>
                         <div><strong>DT:</strong> ${escapeHtml(formatValue(checklist.dtNumber))}</div>
                         <div><strong>Motorista:</strong> ${escapeHtml(formatValue(checklist.driverName))}</div>
@@ -474,7 +485,7 @@ function viewChecklistDetails(index) {
                 ` : ''}
 
                 <!-- Itens -->
-                <div class="bg-yellow-50 p-4 rounded-lg ${checklist.operationType === 'OUT' ? 'hidden' : ''}">
+                <div class="bg-yellow-50 p-4 rounded-lg ${normalizedType === 'OUT' ? 'hidden' : ''}">
                     <h3 class="font-bold text-lg mb-3">📦 Itens Conferidos</h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm border-collapse border border-gray-300">
@@ -573,7 +584,7 @@ function viewChecklistDetails(index) {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     ${checklist.palletRows && checklist.palletRows.length > 0 ? `
                     <div class="bg-orange-50 p-4 rounded-lg">
-                        <h3 class="font-bold text-lg mb-3">📦 Pallets (${checklist.operationType === 'IN' ? 'INBOUND' : 'OUTBOUND'})</h3>
+                        <h3 class="font-bold text-lg mb-3">📦 Pallets (${normalizedType === 'IN' ? 'INBOUND' : 'OUTBOUND'})</h3>
                         <div class="overflow-x-auto text-sm w-full">
                             <table class="w-full min-w-[560px] border-collapse border border-gray-300">
                                 <thead>
@@ -1145,7 +1156,7 @@ function getVisibleChecklists() {
         var temp = [];
         for (i = 0; i < result.length; i++) {
             c = result[i];
-            if (String(c.operationType || '').toUpperCase() === 'IN') {
+            if (normalizeOperationType(c.operationType) === 'IN') {
                 temp.push(c);
             }
         }
@@ -1154,7 +1165,7 @@ function getVisibleChecklists() {
         var temp = [];
         for (i = 0; i < result.length; i++) {
             c = result[i];
-            if (String(c.operationType || '').toUpperCase() === 'OUT') {
+            if (normalizeOperationType(c.operationType) === 'OUT') {
                 temp.push(c);
             }
         }
@@ -1206,7 +1217,7 @@ function sanitizeSheetName(name) {
 }
 
 function getChecklistSheetName(checklist, index) {
-    const typeLabel = checklist.operationType === 'IN' ? 'IN' : checklist.operationType === 'OUT' ? 'OUT' : 'GERAL';
+    const typeLabel = normalizeOperationType(checklist.operationType) === 'IN' ? 'IN' : normalizeOperationType(checklist.operationType) === 'OUT' ? 'OUT' : 'GERAL';
     const dt = String(checklist.dtNumber || checklist.dt_number || '').replace(/\s+/g, '_').substring(0, 12);
     const base = dt ? `${typeLabel}_${dt}` : `${typeLabel}_${String(checklist.id || '').slice(0, 8)}`;
     return sanitizeSheetName(`${base}_${index}`);
@@ -1216,8 +1227,9 @@ function buildChecklistDetailSheetData(checklist) {
     const hygiene = normalizeHygieneEntries(checklist.hygiene || {});
     const hygieneEntries = Object.entries(hygiene);
     const totalBons = checklist.totalBonsGeral || calculateTotalBons(checklist);
+    const normalizedType = normalizeOperationType(checklist.operationType);
     const data = [
-        ['Checklist', checklist.operationType === 'IN' ? 'INBOUND' : checklist.operationType === 'OUT' ? 'OUTBOUND' : 'GERAL'],
+        ['Checklist', normalizedType === 'IN' ? 'INBOUND' : normalizedType === 'OUT' ? 'OUTBOUND' : 'GERAL'],
         ['ID', checklist.id || ''],
         ['DT', formatValue(checklist.dtNumber)],
         ['NF', formatValue(checklist.nfNumber)],
@@ -1248,7 +1260,7 @@ function buildChecklistDetailSheetData(checklist) {
         data.push([]);
     }
 
-    if (String(checklist.operationType || '').toUpperCase() === 'IN') {
+    if (normalizeOperationType(checklist.operationType) === 'IN') {
         data.push(['Itens', 'Previsto', 'Realizado', 'Faltas', 'Sobras', 'Avarias', 'Scrap', 'Av. Interna', 'Bons']);
         const items = Array.isArray(checklist.items) ? checklist.items : [];
         if (items.length) {
@@ -1374,7 +1386,7 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     ];
 
     const rows = visibleChecklists.map(c => [
-        c.operationType === 'IN' ? 'INBOUND' : c.operationType === 'OUT' ? 'OUTBOUND' : '',
+        normalizeOperationType(c.operationType) === 'IN' ? 'INBOUND' : normalizeOperationType(c.operationType) === 'OUT' ? 'OUTBOUND' : '',
         formatValue(c.dtNumber),
         formatValue(c.nfNumber),
         formatValue(c.driverName),
