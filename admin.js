@@ -1083,9 +1083,11 @@ async function deleteChecklistById(id) {
 
 // ===== OUVINTES DE EVENTOS =====
 // Ouvinte para as abas de filtro
-document.querySelectorAll('.filter-tab').forEach(tab => {
+document.querySelectorAll('.filter-tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
-        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.filter-tab').forEach(function(t) {
+            t.classList.remove('active');
+        });
         this.classList.add('active');
         currentFilter = this.dataset.filter;
         renderTable();
@@ -1125,61 +1127,73 @@ document.getElementById('resetDateBtn')?.addEventListener('click', function() {
     renderTable();
 });
 
-function searchChecklists(term) {
-    const trimmed = String(term || '').trim().toLowerCase();
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.value = term;
-    }
-    renderTable();
-}
-
-const debouncedSearch = debounce(() => {
-    const term = document.getElementById('searchInput')?.value || '';
-    searchChecklists(term);
-}, 300);
-document.getElementById('searchInput')?.addEventListener('input', debouncedSearch);
-
 // Ouvinte para o botão "Nova Entrada"
 document.getElementById('newEntryBtn').addEventListener('click', () => {
-    // Redireciona para a página de formulário
     window.location.href = 'index.html';
 });
 
+// ===== FUNÇÃO DE FILTRO VISÍVEL =====
 function getVisibleChecklists() {
-    let filtered = allChecklists;
+    var result = allChecklists;
+    var i;
+    var c;
     
-    // Filtro por tipo de operação
     if (currentFilter === 'inbound') {
-        filtered = filtered.filter(c => String(c.operationType || '').toUpperCase() === 'IN');
+        var temp = [];
+        for (i = 0; i < result.length; i++) {
+            c = result[i];
+            if (String(c.operationType || '').toUpperCase() === 'IN') {
+                temp.push(c);
+            }
+        }
+        result = temp;
     } else if (currentFilter === 'outbound') {
-        filtered = filtered.filter(c => String(c.operationType || '').toUpperCase() === 'OUT');
+        var temp = [];
+        for (i = 0; i < result.length; i++) {
+            c = result[i];
+            if (String(c.operationType || '').toUpperCase() === 'OUT') {
+                temp.push(c);
+            }
+        }
+        result = temp;
     }
     
-    // Filtro por data selecionada
-    const { startOfDay, endOfDay } = getDateRange(selectedDate);
-    filtered = filtered.filter(c => {
-        if (!c.createdAt) return false;
-        const createdDate = c.createdAt.toDate ? c.createdAt.toDate() : c.createdAt;
-        return createdDate >= startOfDay && createdDate <= endOfDay;
-    });
+    var range = getDateRange(selectedDate);
+    var temp2 = [];
+    for (i = 0; i < result.length; i++) {
+        c = result[i];
+        if (!c.createdAt) continue;
+        var dt = c.createdAt.toDate instanceof Function ? c.createdAt.toDate() : c.createdAt;
+        if (dt >= range.startOfDay && dt <= range.endOfDay) {
+            temp2.push(c);
+        }
+    }
+    result = temp2;
 
-    // Filtro por termo de busca
-    const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
-    if (searchTerm) {
-        filtered = filtered.filter(c =>
-            String(c.dtNumber || '').toLowerCase().includes(searchTerm) ||
-            String(c.driverName || '').toLowerCase().includes(searchTerm) ||
-            String(c.placaCavalo || '').toLowerCase().includes(searchTerm) ||
-            String(c.placaCarreta1 || '').toLowerCase().includes(searchTerm) ||
-            String(c.transportadora || '').toLowerCase().includes(searchTerm)
-        );
+    var searchInput = document.getElementById('searchInput');
+    var term = searchInput ? (searchInput.value || '').toLowerCase() : '';
+    
+    if (term) {
+        var temp3 = [];
+        for (i = 0; i < result.length; i++) {
+            c = result[i];
+            var dtNum = String(c.dtNumber || '').toLowerCase();
+            var drvName = String(c.driverName || '').toLowerCase();
+            var pCavalo = String(c.placaCavalo || '').toLowerCase();
+            var pCarreta = String(c.placaCarreta1 || '').toLowerCase();
+            var transp = String(c.transportadora || '').toLowerCase();
+            
+            if (dtNum.indexOf(term) >= 0 || drvName.indexOf(term) >= 0 || pCavalo.indexOf(term) >= 0 || pCarreta.indexOf(term) >= 0 || transp.indexOf(term) >= 0) {
+                temp3.push(c);
+            }
+        }
+        result = temp3;
     }
 
-    return filtered;
-}
+    return result;
 }
 
+// Sanitiza nomes de planilhas Excel para uso em Excel
 function sanitizeSheetName(name) {
     const cleaned = String(name || '')
         .replace(/[\\\/\?\*\[\]:]/g, '')
