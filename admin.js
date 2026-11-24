@@ -1,3 +1,6 @@
+// UID autorizado para o painel administrativo deste projeto.
+const ADMIN_UID = '86vA0di5fZSL6xpQjJVFx8Nhn1H2';
+
 // ===== CONFIGURAÇÃO DO RELÓGIO AO VIVO =====
 setInterval(() => updateClock('liveTime'), 1000);
 updateClock('liveTime');
@@ -489,7 +492,7 @@ async function viewChecklistDetails(index) {
                     </div>
                     <div class="flex gap-2">
                         <button type="button" class="modal-edit-btn btn-secondary">Editar</button>
-                        <button type="button" class="modal-export-btn btn-secondary">Exportar</button>
+                        <button type="button" class="modal-export-btn btn-secondary">Excel</button><button type="button" class="modal-pdf-btn btn-secondary">PDF completo</button>
                         <button type="button" class="modal-close text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
                     </div>
                 </div>
@@ -692,6 +695,8 @@ async function viewChecklistDetails(index) {
     if (exportButton) {
         exportButton.addEventListener('click', () => exportChecklistDetail(checklist));
     }
+    const pdfButton = modal.querySelector('.modal-pdf-btn');
+    if (pdfButton) pdfButton.addEventListener('click', () => exportChecklistPdf(checklist));
 
     document.body.appendChild(modal);
     // Accessibility: enable simple focus trap and role attributes
@@ -1345,6 +1350,48 @@ function buildChecklistDetailSheetData(checklist) {
     return data;
 }
 
+function pdfText(value) {
+    return String(value ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim();
+}
+function exportChecklistPdf(checklist) {
+    const JsPdf = window.jspdf?.jsPDF;
+    if (!JsPdf) { alert('Biblioteca PDF não carregada. Atualize a página e tente novamente.'); return; }
+    const doc = new JsPdf({ unit: 'mm', format: 'a4' });
+    const margin = 14; let y = 18;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const line = (label, value) => {
+        const text = `${label}: ${pdfText(value) || '—'}`;
+        const lines = doc.splitTextToSize(text, pageWidth - margin * 2);
+        if (y + lines.length * 5 > 282) { doc.addPage(); y = 18; }
+        doc.text(lines, margin, y); y += lines.length * 5;
+    };
+    const heading = (title) => { if (y > 270) { doc.addPage(); y = 18; } doc.setFillColor(212, 5, 17); doc.rect(margin, y - 5, pageWidth - margin * 2, 8, 'F'); doc.setTextColor(255,255,255); doc.setFontSize(11); doc.text(title, margin + 3, y); doc.setTextColor(0,0,0); doc.setFontSize(9); y += 10; };
+    doc.setFontSize(18); doc.setTextColor(212, 5, 17); doc.text('CHECKLIST OPERACIONAL', margin, y); y += 7;
+    doc.setFontSize(10); doc.setTextColor(70,70,70); doc.text('DHL / Suzano CD CWB', margin, y); y += 8; doc.setTextColor(0,0,0);
+    heading('Identificação');
+    [['Tipo', normalizeOperationType(checklist.operationType) === 'IN' ? 'INBOUND' : 'OUTBOUND'], ['ID', checklist.id], ['NF', checklist.nfNumber], ['DT', checklist.dtNumber], ['Motorista', checklist.driverName], ['Cavalo', checklist.placaCavalo], ['Carreta 1', checklist.placaCarreta1], ['Carreta 2', checklist.placaCarreta2], ['Transportadora', checklist.transportadora], ['Origem', checklist.origem], ['Doca', checklist.doca], ['Check-in', checklist.checkinTime], ['Total de pallets', checklist.totalPbr || checklist.totalPBR], ['Status do lacre', checklist.statusLacre], ['Lacre 1', checklist.lacre1], ['Lacre 2', checklist.lacre2]].forEach(([label, value]) => line(label, value));
+    heading('Higiene e estrutura');
+    Object.entries(normalizeHygieneEntries(checklist.hygiene || {})).forEach(([label, value]) => line(label, value));
+    line('Observação de higiene', checklist.hygieneNote || checklist.hygieneObservation);
+    if (Array.isArray(checklist.items) && checklist.items.length) {
+        heading('Itens conferidos');
+        checklist.items.forEach((item, index) => line(`Item ${index + 1}`, `Código ${item.code}; Previsto ${item.previsto}; Realizado ${item.realizado}; Faltas ${item.faltas}; Sobras ${item.sobras}; Avarias ${item.avarias}; Scrap ${item.scrap}; Av. internas ${item.avariasInternas}; Bons ${item.bons}`));
+        line('Totais', `Fardos ${checklist.totalFardos || calculateTotalFardos(checklist)}; Faltas ${checklist.totalFaltas || 0}; Sobras ${checklist.totalSobra || 0}; Bons ${calculateTotalBons(checklist)}`);
+    }
+    heading('Observações e assinaturas');
+    line('Observações gerais', checklist.observations);
+    [['Assinatura do motorista', checklist.driverSignature], ['Assinatura do conferente', checklist.checkerSignature]].forEach(([label, image]) => {
+        if (!image) return; if (y + 35 > 282) { doc.addPage(); y = 18; } doc.text(label, margin, y); y += 4; try { doc.addImage(image, 'PNG', margin, y, 75, 25); } catch (e) {} y += 31;
+    });
+    const photos = Array.isArray(checklist.photos) ? checklist.photos : [];
+    if (photos.length) {
+        heading(`Fotos do checklist (${photos.length})`);
+        photos.forEach((image, index) => { if (y + 58 > 282) { doc.addPage(); y = 18; } doc.text(`Foto ${index + 1}`, margin, y); y += 3; try { doc.addImage(image, 'JPEG', margin, y, 82, 52); } catch (e) {} y += 57; });
+    }
+    const safeId = pdfText(checklist.id || checklist.dtNumber || 'checklist').replace(/[^a-z0-9_-]+/gi, '_');
+    doc.save(`checklist_${safeId}.pdf`);
+}
+
 function exportChecklistDetail(checklist) {
     if (!window.XLSX) {
         alert('Biblioteca Excel não carregada. Atualize a página e tente novamente.');
@@ -1474,11 +1521,23 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('signOutBtn')?.addEventListener('click', handleSignOut);
 
     if (window.firebaseAuth && window.firebaseOnAuthStateChanged) {
-        window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
-            if (user) {
-                showAuthenticatedAdmin();
-            } else {
+        window.firebaseOnAuthStateChanged(window.firebaseAuth, async (user) => {
+            if (!user) {
                 showUnauthenticatedAdmin();
+                return;
+            }
+            try {
+                const tokenResult = await user.getIdTokenResult();
+                if (user.uid !== ADMIN_UID) {
+                    showUnauthenticatedAdmin();
+                    showAuthError('Este usuário não está autorizado para o painel administrativo.');
+                    return;
+                }
+                showAuthenticatedAdmin();
+            } catch (error) {
+                console.error('Não foi possível validar a permissão administrativa:', error);
+                showUnauthenticatedAdmin();
+                showAuthError('Não foi possível validar sua permissão. Tente novamente.');
             }
         });
     }

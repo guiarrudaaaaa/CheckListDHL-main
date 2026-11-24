@@ -18,7 +18,8 @@ import {
   deleteDoc,
   serverTimestamp,
   limit,
-  onSnapshot
+  onSnapshot,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // Configuração do Firebase para o projeto Check List DHL
@@ -43,6 +44,7 @@ window.firebaseAnalytics = analytics;
 window.firebaseDb = db;
 window.firebaseCollection = collection;
 window.firebaseAddDoc = addDoc;
+window.firebaseSetDoc = setDoc;
 window.firebaseUpdateDoc = updateDoc;
 window.firebaseGetDocs = getDocs;
 window.firebaseGetDoc = getDoc;

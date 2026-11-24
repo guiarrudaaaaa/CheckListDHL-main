@@ -1,103 +1,25 @@
-# 📷 Funcionalidade de Fotos - Checklist DHL
+# Funcionalidade de fotos
 
-## ✅ Resumo das Alterações
+A Seção 06 do checklist agora usa um único campo `<input type="file" multiple>` para selecionar até 12 imagens de uma vez. A pré-visualização aparece em uma grade responsiva, com remoção individual e botão para limpar todas as fotos.
 
-A funcionalidade de anexar imagens no checklist foi reativada e implementada com as seguintes características:
+## Processamento
 
-### 1. **Frontend - Formulário do Checklist (index.html)**
-- ✅ Seção 06 "Fotos do Checklist" descomentada
-- ✅ 6 campos de upload de imagem disponíveis
-- ✅ Capture de câmera integrada (atributo `capture="environment"`)
-- ✅ Pré-visualização de imagens após seleção
+O processamento é feito no navegador por `components/photo-uploader.js`. Cada arquivo é validado como imagem, redimensionado para no máximo 1280 px no maior lado e convertido para JPEG com compressão progressiva. O alvo é aproximadamente 85 KB por imagem, mantendo o conjunto pequeno o suficiente para reduzir falhas no Firestore e em conexões lentas. O formulário mostra o progresso e o tamanho aproximado total antes do envio.
 
-### 2. **JavaScript - Processamento de Imagens (index.js)**
-- ✅ Array `photoDataUrls` para armazenar imagens em Base64
-- ✅ Função `handlePhotoChange()` - processa imagens selecionadas
-- ✅ Função `clearPhotoPreview()` - limpa prévia de uma imagem
-- ✅ Função `clearAllPhotoPreviews()` - limpa todas as imagens
-- ✅ Validação de tipo de arquivo (apenas imagens)
-- ✅ Conversão para Base64 e armazenamento em memória
+As imagens comprimidas ficam temporariamente no array `photoDataUrls`. Ao salvar, o campo `photos` é incluído no checklist. O painel administrativo mantém as imagens no detalhe e preserva as fotos quando um checklist é editado. Registros antigos com arrays Base64 continuam compatíveis.
 
-### 3. **Salvamento no Firestore**
-- ✅ Campo `photos` adicionado ao objeto `checklistData`
-- ✅ Apenas imagens não-vazias são salvas (filtro aplicado)
-- ✅ Imagens armazenadas em Base64 no Firestore
-- ✅ Limpeza de imagens após sucesso do envio
+## Confiabilidade do envio
 
-### 4. **Painel Admin - Visualização (admin.html + admin.js)**
-- ✅ Modal de detalhes exibe seção "📷 Fotos do Checklist"
-- ✅ Grid responsivo com imagens em 3 colunas
-- ✅ Visualização clara das fotos armazenadas
-- ✅ Compatibilidade com modal de edição
+O salvamento usa três tentativas com espera progressiva para falhas momentâneas. O documento recebe um ID criado antes do primeiro envio e é gravado com `setDoc`; se a resposta se perder e a operação for repetida, o mesmo ID evita a criação de dois checklists. O botão de envio também fica protegido contra duplo clique.
 
-### 5. **Modal de Edição (admin.js)**
-- ✅ Preservação de fotos durante edição
-- ✅ Assinaturas mantidas durante atualização
-- ✅ Fotos incluídas no objeto `updatedChecklist`
+## Fluxo
 
-## 🔄 Fluxo de Dados
+1. O usuário seleciona até 12 imagens no único campo.
+2. O navegador valida, comprime e exibe cada imagem.
+3. O usuário pode remover fotos individualmente.
+4. O checklist é gravado com fotos, assinaturas e demais dados.
+5. O admin visualiza as fotos no modal e pode incluí-las no PDF completo.
 
-```
-Usuário seleciona foto (index.html)
-    ↓
-handlePhotoChange() processa e converte para Base64 (index.js)
-    ↓
-Imagem armazenada em photoDataUrls[]
-    ↓
-Pré-visualização exibida no formulário
-    ↓
-saveChecklist() inclui fotos no checklistData
-    ↓
-Dados salvos no Firestore (Firebase)
-    ↓
-Admin carrega dados (admin.js)
-    ↓
-Modal de detalhes exibe fotos em grid responsivo
-    ↓
-Edição preserva fotos originais
-```
+## Limitação arquitetural
 
-## 📝 Campos Afetados
-
-### index.html
-- Linha ~290: Seção 06 descomentada com 6 inputs de foto
-
-### index.js
-- Linhas ~330-370: Novas funções de gerenciamento de fotos
-- Linha ~465: `photos: photoDataUrls.filter(photo => photo !== '')` adicionado
-- Linha ~520: `clearAllPhotoPreviews()` descomentado
-
-### admin.js
-- Linhas ~883-886: Adição de `photos`, `driverSignature` e `checkerSignature` ao `updatedChecklist`
-
-## 🔒 Segurança
-
-- ✅ Validação de tipo MIME (apenas imagens)
-- ✅ Sanitização via `escapeHtml()` no painel admin
-- ✅ Base64 armazenado seguramente no Firestore
-- ✅ Sem upload direto para Storage (economiza custos)
-
-## 📊 Otimizações
-
-- ✅ Imagens em Base64 (sem chamadas externas de Storage)
-- ✅ Filtro que salva apenas imagens não-vazias
-- ✅ Pré-visualização local sem reprocessamento
-- ✅ Responsivo para desktop e mobile
-
-## ✨ Funcionalidades Preservadas
-
-- ✅ Todos os campos de dados originais mantidos
-- ✅ Assinaturas dos motoristas intactas
-- ✅ Validações de formulário preservadas
-- ✅ Edição de checklists funcionando normalmente
-- ✅ Métricas e filtros do painel admin inalterados
-
-## 🧪 Teste Recomendado
-
-1. Abrir index.html
-2. Preencher formulário completo
-3. Adicionar 1-6 fotos na Seção 06
-4. Finalizar checklist
-5. Verificar no painel admin se as fotos aparecem
-6. Clicar em detalhes para visualizar fotos
-7. Testar edição do checklist
+A versão atual mantém Base64 no Firestore por compatibilidade com dados já existentes. Essa é uma mitigação para o problema imediato de peso, não a solução definitiva para alto volume. Em uma próxima etapa, migrar as fotos para Firebase Storage e guardar apenas caminhos, URLs e metadados no Firestore reduzirá o risco do limite de 1 MiB por documento.

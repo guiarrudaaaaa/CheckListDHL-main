@@ -388,99 +388,17 @@ function validateChecklist() {
 }
 
 // ===== GERENCIAMENTO DE FOTOS =====
-// Array para armazenar imagens em Base64
-let photoDataUrls = Array(6).fill('');
-
+let photoDataUrls = [];
 function clearPhotoPreview(index) {
-    if (window.components?.photoUploader?.clearPhotoPreview) {
-        return window.components.photoUploader.clearPhotoPreview(index, photoDataUrls);
-    }
-    const preview = document.getElementById(`photoPreview${index}`);
-    const input = document.getElementById(`photoInput${index}`);
-    const removeBtn = document.querySelector(`.photo-upload-card:nth-child(${index}) .photo-remove-btn`);
-    if (!preview) return;
-    preview.innerHTML = '<span class="text-xs text-slate-400">Toque para selecionar imagem</span>';
-    photoDataUrls[index - 1] = '';
-    if (input) input.value = '';
-    if (removeBtn) removeBtn.style.display = 'none';
+    if (Number.isInteger(index) && index >= 0) photoDataUrls.splice(index, 1);
+    window.components?.photoUploader?.renderPreviews?.(photoDataUrls);
 }
-
-async function handlePhotoChange(event, index) {
-    if (window.components?.photoUploader?.handlePhotoChange) {
-        return window.components.photoUploader.handlePhotoChange(event, index, photoDataUrls);
-    }
-    const input = event.target;
-    const preview = document.getElementById(`photoPreview${index}`);
-    const message = document.getElementById('photoUploadMessage');
-    if (!input.files[0] || !preview) return;
-    try {
-        const file = input.files[0];
-        if (!file.type.startsWith('image/')) {
-            message.textContent = 'Por favor, selecione um arquivo de imagem válido.';
-            clearPhotoPreview(index);
-            return;
-        }
-        const maxSize = window.components?.photoUploader?.MAX_SIZE_BYTES || (300 * 1024);
-        if (file.size > maxSize) {
-            message.textContent = 'Imagem muito grande (máx. 300KB). A imagem será comprimida.';
-        }
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            let dataUrl = e.target.result;
-            if (dataUrl.length > maxSize * 1.34) {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    const maxDim = 1024;
-                    if (width > height && width > maxDim) {
-                        height = (height * maxDim) / width;
-                        width = maxDim;
-                    } else if (height > maxDim) {
-                        width = (width * maxDim) / height;
-                        height = maxDim;
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-                    photoDataUrls[index - 1] = dataUrl;
-                    preview.innerHTML = `<img src="${dataUrl}" alt="Foto ${index}" class="photo-preview-img">`;
-                    message.textContent = 'Imagem carregada e comprimida com sucesso.';
-                    const removeBtn = document.querySelector(`.photo-upload-card:nth-child(${index}) .photo-remove-btn`);
-                    if (removeBtn) removeBtn.style.display = 'block';
-                };
-                img.src = e.target.result;
-            } else {
-                photoDataUrls[index - 1] = dataUrl;
-                preview.innerHTML = `<img src="${dataUrl}" alt="Foto ${index}" class="photo-preview-img">`;
-                message.textContent = '';
-                const removeBtn = document.querySelector(`.photo-upload-card:nth-child(${index}) .photo-remove-btn`);
-                if (removeBtn) removeBtn.style.display = 'block';
-            }
-        };
-        reader.readAsDataURL(file);
-    } catch (err) {
-        console.error('Erro ao processar foto:', err);
-        message.textContent = 'Não foi possível carregar a imagem. Tente novamente.';
-        input.value = '';
-    }
+async function handlePhotoChange(event) {
+    return window.components?.photoUploader?.handlePhotoChange?.(event, photoDataUrls);
 }
-
 function clearAllPhotoPreviews() {
-    if (window.components?.photoUploader?.clearAllPhotoPreviews) {
-        return window.components.photoUploader.clearAllPhotoPreviews(photoDataUrls);
-    }
-    photoDataUrls = Array(6).fill('');
-    for (let i = 1; i <= 6; i += 1) {
-        clearPhotoPreview(i);
-        const input = document.getElementById(`photoInput${i}`);
-        if (input) input.value = '';
-    }
+    return window.components?.photoUploader?.clearAllPhotoPreviews?.(photoDataUrls);
 }
-
 function showChecklistMain() {
     document.getElementById('mainShell')?.classList.remove('hidden');
 
@@ -502,21 +420,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const opType = document.getElementById('operationTypeSelect')?.value;
     toggleTechnicalSectionInputs(opType !== 'OUTBOUND');
     
-    // Adicionar event listeners para os botões de upload de foto
-    for (let i = 1; i <= 6; i++) {
-        const uploadBtn = document.querySelector(`.photo-upload-card:nth-child(${i}) .photo-upload-button`);
-        const input = document.getElementById(`photoInput${i}`);
-        
-        if (uploadBtn && input) {
-            uploadBtn.addEventListener('click', () => {
-                input.click();
-            });
-        }
-    }
+    window.components?.photoUploader?.renderPreviews?.(photoDataUrls);
 });
 
 // ===== SALVAMENTO DO CHECKLIST =====
 // Função para salvar o checklist no Firebase Firestore
+let isSubmittingChecklist = false;
 async function saveChecklist(event) {
     event.preventDefault();
 
@@ -542,6 +451,7 @@ async function saveChecklist(event) {
         return;
     }
 
+    isSubmittingChecklist = true;
     const operationType = document.getElementById('operationTypeSelect').value;
 
     const checklistData = {
@@ -610,17 +520,25 @@ async function saveChecklist(event) {
 
     let docRef = null;
     try {
-        if (!window.firebaseDb || !window.firebaseAddDoc || !window.firebaseCollection || !window.firebaseUpdateDoc) {
+        if (!window.firebaseDb || !window.firebaseSetDoc || !window.firebaseCollection || !window.firebaseDoc) {
             throw new Error('Firebase não está inicializado.');
         }
 
-        docRef = await window.firebaseAddDoc(
-            window.firebaseCollection(window.firebaseDb, 'checklists'),
-            {
-                ...checklistData,
-                createdAt: window.firebaseServerTimestamp ? window.firebaseServerTimestamp() : new Date()
+        const submissionId = `ck_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+        docRef = window.firebaseDoc(window.firebaseDb, 'checklists', submissionId);
+        const payload = { ...checklistData, submissionId, createdAt: window.firebaseServerTimestamp ? window.firebaseServerTimestamp() : new Date() };
+        let lastError;
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+            try {
+                await window.firebaseSetDoc(docRef, payload, { merge: false });
+                lastError = null;
+                break;
+            } catch (retryError) {
+                lastError = retryError;
+                if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 900 * (attempt + 1)));
             }
-        );
+        }
+        if (lastError) throw lastError;
 
         showFormAlert('success', 'Checklist enviado para o painel admin com sucesso!');
         document.getElementById('mainChecklist').reset();
@@ -632,7 +550,7 @@ async function saveChecklist(event) {
         if (window.pendingModule) window.pendingModule.runChecks();
     } catch (error) {
         console.error('Erro ao enviar dados para o painel:', error);
-        if (docRef && window.firebaseDeleteDoc) {
+        if (docRef && window.firebaseDeleteDoc && !String(error?.code || '').includes('unavailable')) {
             try {
                 await window.firebaseDeleteDoc(docRef);
             } catch (cleanupError) {
@@ -641,6 +559,7 @@ async function saveChecklist(event) {
         }
         showFormAlert('error', 'Erro ao enviar o relatório para o painel admin. Verifique a conexão e tente novamente.');
     } finally {
+        isSubmittingChecklist = false;
         if (submitButton) {
             submitButton.disabled = false;
             submitButton.classList.remove('opacity-70', 'cursor-not-allowed');

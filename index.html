@@ -222,80 +222,23 @@
             </section>
 
             <!-- ===== SEÇÃO 06: FOTOS DO CHECKLIST ===== -->
-            <!-- Upload local de até 6 fotos armazenadas em Base64 no Firestore -->
+            <!-- Um único campo aceita até 12 imagens, que são comprimidas no navegador antes do envio. -->
             <section id="photosSection" class="glass-card p-8">
                 <div class="flex items-center gap-3 mb-5">
                     <span class="w-8 h-8 dhl-red text-white flex items-center justify-center rounded-lg font-black section-number">06</span>
                     <div>
                         <h2 class="text-black font-bold uppercase">Fotos do Checklist</h2>
+                        <p class="text-xs text-slate-500 mt-1">Selecione até 12 imagens de uma vez. Elas serão reduzidas automaticamente para funcionar melhor em internet lenta.</p>
                     </div>
                 </div>
-
-                <div id="photoUploadMessage" class="text-red-600 text-sm mb-4"></div>
-                <div class="photo-upload-grid">
-                    <div class="photo-upload-card">
-                        <div class="photo-preview" id="photoPreview1">
-                            <span class="text-xs text-slate-400">Toque para selecionar imagem</span>
-                        </div>
-                        <input id="photoInput1" class="photo-input" type="file" accept="image/*" onchange="handlePhotoChange(event, 1)">
-                        <div class="photo-controls">
-                            <span class="photo-upload-button">Selecionar foto 1</span>
-                            <button type="button" class="photo-remove-btn" onclick="clearPhotoPreview(1)" style="display: none;">✕</button>
-                        </div>
-                    </div>
-                    <div class="photo-upload-card">
-                        <div class="photo-preview" id="photoPreview2">
-                            <span class="text-xs text-slate-400">Toque para selecionar imagem</span>
-                        </div>
-                        <input id="photoInput2" class="photo-input" type="file" accept="image/*" onchange="handlePhotoChange(event, 2)">
-                        <div class="photo-controls">
-                            <span class="photo-upload-button">Selecionar foto 2</span>
-                            <button type="button" class="photo-remove-btn" onclick="clearPhotoPreview(2)" style="display: none;">✕</button>
-                        </div>
-                    </div>
-                    <div class="photo-upload-card">
-                        <div class="photo-preview" id="photoPreview3">
-                            <span class="text-xs text-slate-400">Toque para selecionar imagem</span>
-                        </div>
-                        <input id="photoInput3" class="photo-input" type="file" accept="image/*" onchange="handlePhotoChange(event, 3)">
-                        <div class="photo-controls">
-                            <span class="photo-upload-button">Selecionar foto 3</span>
-                            <button type="button" class="photo-remove-btn" onclick="clearPhotoPreview(3)" style="display: none;">✕</button>
-                        </div>
-                    </div>
-                    <div class="photo-upload-card">
-                        <div class="photo-preview" id="photoPreview4">
-                            <span class="text-xs text-slate-400">Toque para selecionar imagem</span>
-                        </div>
-                        <input id="photoInput4" class="photo-input" type="file" accept="image/*" onchange="handlePhotoChange(event, 4)">
-                        <div class="photo-controls">
-                            <span class="photo-upload-button">Selecionar foto 4</span>
-                            <button type="button" class="photo-remove-btn" onclick="clearPhotoPreview(4)" style="display: none;">✕</button>
-                        </div>
-                    </div>
-                    <div class="photo-upload-card">
-                        <div class="photo-preview" id="photoPreview5">
-                            <span class="text-xs text-slate-400">Toque para selecionar imagem</span>
-                        </div>
-                        <input id="photoInput5" class="photo-input" type="file" accept="image/*" onchange="handlePhotoChange(event, 5)">
-                        <div class="photo-controls">
-                            <span class="photo-upload-button">Selecionar foto 5</span>
-                            <button type="button" class="photo-remove-btn" onclick="clearPhotoPreview(5)" style="display: none;">✕</button>
-                        </div>
-                    </div>
-                    <div class="photo-upload-card">
-                        <div class="photo-preview" id="photoPreview6">
-                            <span class="text-xs text-slate-400">Toque para selecionar imagem</span>
-                        </div>
-                        <input id="photoInput6" class="photo-input" type="file" accept="image/*" onchange="handlePhotoChange(event, 6)">
-                        <div class="photo-controls">
-                            <span class="photo-upload-button">Selecionar foto 6</span>
-                            <button type="button" class="photo-remove-btn" onclick="clearPhotoPreview(6)" style="display: none;">✕</button>
-                        </div>
-                    </div>
+                <div id="photoUploadMessage" class="text-sm mb-4" role="status" aria-live="polite"></div>
+                <div class="photo-upload-card photo-upload-single">
+                    <input id="photoInput" class="photo-input" type="file" accept="image/*" multiple onchange="handlePhotoChange(event)">
+                    <label for="photoInput" class="photo-upload-button photo-upload-button-large">Selecionar até 12 fotos</label>
+                    <button type="button" id="clearPhotosButton" class="photo-remove-btn" onclick="clearAllPhotoPreviews()" style="display:none">Limpar fotos</button>
                 </div>
+                <div id="photoPreviewGrid" class="photo-upload-grid mt-5" aria-live="polite"></div>
             </section>
-
                <!-- ===== SEÇÃO 07: ASSINATURAS ===== -->
             <!-- Canvas para assinaturas digitais do motorista e conferente -->
             <section id="signaturesSection" class="glass-card p-8">

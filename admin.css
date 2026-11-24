@@ -10,30 +10,7 @@
     --font-stack: 'DHL Delivery', 'Frutiger', 'Helvetica', 'Arial', sans-serif; /* Pilha de fontes com fallbacks */
 }
 
-/* ===== DECLARAÇÕES DE FONTE PERSONALIZADA ===== */
-/* Fontes proprietárias da DHL - descomente quando os arquivos estiverem disponíveis */
-/*
-@font-face {
-    font-family: 'DHL Delivery';
-    font-style: normal;
-    font-weight: 400; /* Regular para textos de apoio */
-    src: url('fonts/DHL-Delivery-Regular.woff2') format('woff2');
-}
-
-@font-face {
-    font-family: 'DHL Delivery';
-    font-style: normal;
-    font-weight: 700; /* Bold para títulos */
-    src: url('fonts/DHL-Delivery-Bold.woff2') format('woff2');
-}
-
-@font-face {
-    font-family: 'DHL Delivery';
-    font-style: normal;
-    font-weight: 900; /* Black para botões importantes */
-    src: url('fonts/DHL-Delivery-Black.woff2') format('woff2');
-}
-*/
+/* A fonte proprietária não é distribuída neste pacote; a pilha usa fallbacks do sistema. */
 
 /* ===== RESET E ESTILOS BASE ===== */
 /* Aplica a fonte DHL Delivery em todos os elementos */

@@ -1,15 +1,20 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
     match /checklists/{id} {
+      // Usuários autenticados podem criar checklists.
       allow create: if request.auth != null;
-      allow read: if request.auth != null;
-      allow update: if request.auth != null && request.auth.uid == resource.data.createdByUid;
-      allow delete: if request.auth != null && request.auth.token.admin == true;
+
+      // Administrador fixo deste projeto, identificado pelo UID do Firebase Auth.
+      allow read, update, delete: if request.auth != null
+        && request.auth.uid == "86vA0di5fZSL6xpQjJVFx8Nhn1H2";
     }
 
     match /admin/{doc} {
-      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      allow read, write: if request.auth != null
+        && request.auth.uid == "86vA0di5fZSL6xpQjJVFx8Nhn1H2";
     }
   }
 }
